@@ -1,4 +1,6 @@
 import torch
+import torch.utils.data
+
 
 class RandomNumberDataset(torch.utils.data.Dataset):
     def __init__(self, produce_output, num=1000, low=-1, high=1, input_dim=1):
@@ -12,6 +14,12 @@ class RandomNumberDataset(torch.utils.data.Dataset):
 
     def __getitem__(self, idx):
         return self.x[idx], self.y[idx]
+
+    def get_input(self):
+        return self.x
+
+    def get_output(self):
+        return self.y
 
 
 class PartialViewDataset(torch.utils.data.Dataset):
