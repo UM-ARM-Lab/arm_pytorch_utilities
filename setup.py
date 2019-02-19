@@ -8,5 +8,8 @@ setup(
     license='MIT',
     author='zhsh',
     author_email='zhsh@umich.edu',
-    description='Utilities for working with pytorch'
+    description='Utilities for working with pytorch',
+    install_requires=[
+        'torch'
+    ]
 )
