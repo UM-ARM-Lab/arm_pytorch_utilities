@@ -1,5 +1,6 @@
 import random
 import torch
+import numpy as np
 
 
 def seed(randseed=None):
@@ -7,6 +8,8 @@ def seed(randseed=None):
     if randseed is None:
         randseed = random.randint(0, 1000000)
 
+    random.seed(randseed)
+    np.random.seed(randseed)
     torch.manual_seed(randseed)
     if torch.cuda.is_available():
         torch.cuda.manual_seed_all(randseed)
