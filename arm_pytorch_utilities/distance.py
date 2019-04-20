@@ -1,10 +1,14 @@
 import torch
 
 
-def pairwise_distance(x):
-    mat_square = torch.mm(x, x.t())
-    diag_pre = torch.diagonal(mat_square)
-    diag = diag_pre.expand_as(mat_square)
-    # element i,j is L2 norm from ith row to jth row in mat
-    dist_mat = (diag + diag.t() - 2 * mat_square)
-    return dist_mat
+def pairwise_distance(x, y=None):
+    """Euclidean pairwise distance"""
+    if y is None:
+        y = x.t()
+
+    y = x.t()
+    out = -2 * torch.matmul(x, y)
+    out += (x ** 2).sum(dim=-1, keepdim=True)
+    out += (y ** 2).sum(dim=-2, keepdim=True)
+
+    return out
