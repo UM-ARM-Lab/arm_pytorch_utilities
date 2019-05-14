@@ -22,6 +22,19 @@ class RandomNumberDataset(torch.utils.data.Dataset):
         return self.y
 
 
+class SimpleXUYDataset(torch.utils.data.Dataset):
+    def __init__(self, XU, Y):
+        self.XU = XU
+        self.Y = Y
+        super(SimpleXUYDataset, self).__init__()
+
+    def __len__(self):
+        return len(self.XU)
+
+    def __getitem__(self, idx):
+        return self.XU[idx], self.Y[idx]
+
+
 class PartialViewDataset(torch.utils.data.Dataset):
     """Get a slice of a full dataset (for example to split training and validation set)
     taken from https://discuss.pytorch.org/t/best-way-training-data-in-pytorch/6855/2"""
