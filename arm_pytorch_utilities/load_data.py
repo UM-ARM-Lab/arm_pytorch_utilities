@@ -35,6 +35,17 @@ class SimpleXUYDataset(torch.utils.data.Dataset):
         return self.XU[idx], self.Y[idx]
 
 
+class SimpleDataset(torch.utils.data.Dataset):
+    def __init__(self, *sequences):
+        self.sequences = sequences
+
+    def __len__(self):
+        return len(self.sequences[0])
+
+    def __getitem__(self, idx):
+        return tuple(sequence[idx] for sequence in self.sequences)
+
+
 class PartialViewDataset(torch.utils.data.Dataset):
     """Get a slice of a full dataset (for example to split training and validation set)
     taken from https://discuss.pytorch.org/t/best-way-training-data-in-pytorch/6855/2"""
