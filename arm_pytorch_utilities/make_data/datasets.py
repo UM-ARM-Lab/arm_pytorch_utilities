@@ -96,10 +96,10 @@ class PolynomialDataSet(DataSet):
 
         from sklearn.preprocessing import PolynomialFeatures
         self._order = order
-        self._poly = PolynomialFeatures(self._order, include_bias=polynomial_bias)
+        self.poly = PolynomialFeatures(self._order, include_bias=polynomial_bias)
         # create input sample to fit (tells sklearn what input sizes to expect)
         u = np.random.rand(2).reshape(1, -1)
-        self._poly.fit(u)
+        self.poly.fit(u)
 
         target = target_params
         if target is None:
@@ -112,17 +112,17 @@ class PolynomialDataSet(DataSet):
                 raise RuntimeError("Unhandled polynomial order: {}".format(self._order))
             if polynomial_bias:
                 target += [0]
-        self._target_params = torch.tensor([target], dtype=torch.double, device=self.device)
-        assert self._poly.n_output_features_ == self._target_params.shape[1]
+        self.target_params = torch.tensor([target], dtype=torch.double, device=self.device)
+        assert self.poly.n_output_features_ == self.target_params.shape[1]
 
         self.make_data()
 
     def create_feature_transformation(self):
         linear = torch.nn.Sequential(
-            torch.nn.Linear(self._poly.n_output_features_, self.H, bias=False),
+            torch.nn.Linear(self.poly.n_output_features_, self.H, bias=False),
         ).double().to(self.device)
 
-        linear[0].weight.data = self._target_params.clone()
+        linear[0].weight.data = self.target_params.clone()
 
         return self._tsf_from_ltsf(linear)
 
@@ -130,7 +130,7 @@ class PolynomialDataSet(DataSet):
         def tsf(xu):
             # only polynomials on x1 and x2
             x = xu[:, :2].cpu().numpy()
-            polyout = self._poly.transform(x)
+            polyout = self.poly.transform(x)
             xx = torch.from_numpy(polyout).to(self.device)
             features = ltsf(xx)
             return features
