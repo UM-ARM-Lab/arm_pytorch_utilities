@@ -1,14 +1,16 @@
 import torch
 import matplotlib.pyplot as plt
 from arm_pytorch_utilities.make_data import make, select
+from arm_pytorch_utilities import rand, string
 import numpy as np
 
 
 class DataSet:
-    def __init__(self, N=200, variance=0.1, input_dim=3, output_dim=1, num_modes=3, selector=None,
+    def __init__(self, N=200, variance=0.1, input_dim=3, output_dim=1, num_modes=3, selector=None, selector_seed=None,
                  use_gpu_if_available=False):
         self.N = N
         self.variance = variance
+        self.selector_seed = selector_seed
 
         # GPU speedup
         if use_gpu_if_available and torch.cuda.is_available():
@@ -16,16 +18,17 @@ class DataSet:
         else:
             self.device = torch.device("cpu")
 
-        self._p = input_dim
-        self._n = output_dim
-        self._s = num_modes
-        self._H = 1
+        self.p = input_dim
+        self.n = output_dim
+        self.s = num_modes
+        self.H = 1
 
-        self._pp = (torch.rand((self._s, self._p, self._n), dtype=torch.double) - 0.5) * 4
+        self.pp = None
         self._train = None
         self._val = None
         self._selector = selector
         self._tsf = None
+        self.make_parameters()
 
     def training_set(self):
         return self._train
@@ -40,16 +43,27 @@ class DataSet:
     def create_feature_transformation(self):
         return None
 
+    def make_parameters(self):
+        """Make the affine model parameters"""
+        self.pp = (torch.rand((self.s, self.p, self.n), dtype=torch.double) - 0.5) * 4
+
     def make_data(self):
         """Separate function from constructor to allow reseeding; assumes transformation has been created"""
         if self._tsf is None:
             self._tsf = self.create_feature_transformation()
 
         if self._selector is None:
+            if self.selector_seed is not None:
+                self.selector_seed = rand.seed(self.selector_seed)
             self._selector = select.RandomSelector(self._tsf, 0.2)
 
-        self._train = make.make(self._pp, self.N, self.variance, selector=self._selector, sorted=True)
-        self._val = make.make(self._pp, self.N, self.variance, selector=self._selector, sorted=True)
+        self._train = make.make(self.pp, self.N, self.variance, selector=self._selector, sorted=True)
+        self._val = make.make(self.pp, self.N, self.variance, selector=self._selector, sorted=True)
+
+    def data_id(self):
+        """String identification for this data"""
+        return "p_{}_n_{}_N_{}_select_seed_{}".format(string.f2s(self.p), string.f2s(self.n), string.f2s(self.N),
+                                                      string.f2s(self.selector_seed))
 
 
 class LinearDataSet(DataSet):
@@ -61,15 +75,15 @@ class LinearDataSet(DataSet):
 
     def create_feature_transformation(self):
         linear = torch.nn.Sequential(
-            torch.nn.Linear(self._p, self._H, bias=False),
+            torch.nn.Linear(self.p, self.H, bias=False),
         ).double().to(self.device)
-        linear[0].weight.data = (torch.rand((1, self._p), dtype=torch.double) - 0.5) * 6
+        linear[0].weight.data = (torch.rand((1, self.p), dtype=torch.double) - 0.5) * 6
         return linear
 
     def plot_training(self):
         U, Y, labels = self._train
         plt.figure()
-        for i in range(self._s):
+        for i in range(self.s):
             in_cluster = labels == i
             plt.scatter(U[in_cluster, 0], Y[in_cluster])
 
@@ -105,7 +119,7 @@ class PolynomialDataSet(DataSet):
 
     def create_feature_transformation(self):
         linear = torch.nn.Sequential(
-            torch.nn.Linear(self._poly.n_output_features_, self._H, bias=False),
+            torch.nn.Linear(self._poly.n_output_features_, self.H, bias=False),
         ).double().to(self.device)
 
         linear[0].weight.data = self._target_params.clone()
@@ -130,6 +144,6 @@ class PolynomialDataSet(DataSet):
         fig = plt.figure()
         ax = fig.add_subplot(111, projection='3d')
         symbols = ['x', 'o', '*']
-        for j in range(self._s):
+        for j in range(self.s):
             in_cluster = labels == j
             ax.scatter(U[in_cluster, 0], U[in_cluster, 1], Y[in_cluster], marker=symbols[j % len(symbols)])
