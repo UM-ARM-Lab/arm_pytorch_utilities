@@ -121,7 +121,7 @@ class PolynomialDataSet(DataSet):
         self.make_data()
 
     def data_id(self):
-        return "{}_{}".format(super(PolynomialDataSet, self).data_id(), self.feature_input)
+        return "{}_fin_{}".format(super(PolynomialDataSet, self).data_id(), self.feature_input)
 
     def create_feature_transformation(self):
         linear = torch.nn.Sequential(
