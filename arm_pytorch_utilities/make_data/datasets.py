@@ -91,18 +91,21 @@ class LinearDataSet(DataSet):
 class PolynomialDataSet(DataSet):
     """2D input 1D output, mode is separable in x1^2 + x2^2"""
 
-    def __init__(self, order=2, target_params=None, polynomial_bias=False, **kwargs):
+    def __init__(self, order=2, feature_input=2, target_params=None, polynomial_bias=False, **kwargs):
         super(PolynomialDataSet, self).__init__(**kwargs)
 
         from sklearn.preprocessing import PolynomialFeatures
         self._order = order
+        self.feature_input = feature_input
         self.poly = PolynomialFeatures(self._order, include_bias=polynomial_bias)
         # create input sample to fit (tells sklearn what input sizes to expect)
-        u = np.random.rand(2).reshape(1, -1)
+        u = np.random.rand(self.feature_input).reshape(1, -1)
         self.poly.fit(u)
 
         target = target_params
         if target is None:
+            if feature_input is not 2:
+                raise RuntimeError("Only have default parameters for feature_input = 2")
             # fixed weight to ensure x1^2 + x2^2 is the feature
             if self._order is 2:
                 target = [0, 0, 1, 0, 1]
@@ -117,6 +120,9 @@ class PolynomialDataSet(DataSet):
 
         self.make_data()
 
+    def data_id(self):
+        return "{}_{}".format(super(PolynomialDataSet, self).data_id(), self.feature_input)
+
     def create_feature_transformation(self):
         linear = torch.nn.Sequential(
             torch.nn.Linear(self.poly.n_output_features_, self.H, bias=False),
@@ -129,7 +135,7 @@ class PolynomialDataSet(DataSet):
     def _tsf_from_ltsf(self, ltsf):
         def tsf(xu):
             # only polynomials on x1 and x2
-            x = xu[:, :2].cpu().numpy()
+            x = xu[:, :self.feature_input].cpu().numpy()
             polyout = self.poly.transform(x)
             xx = torch.from_numpy(polyout).to(self.device)
             features = ltsf(xx)
