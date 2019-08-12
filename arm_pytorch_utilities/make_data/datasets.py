@@ -6,7 +6,7 @@ import numpy as np
 
 
 class DataSet:
-    def __init__(self, N=200, variance=0.1, input_dim=3, output_dim=1, num_modes=3, selector=None, selector_seed=None,
+    def __init__(self, N=200, variance=0.15, input_dim=3, output_dim=1, num_modes=3, selector=None, selector_seed=None,
                  use_gpu_if_available=False):
         self.N = N
         self.variance = variance
@@ -43,6 +43,11 @@ class DataSet:
     def create_feature_transformation(self):
         return None
 
+    def create_mode_selector(self):
+        if self.selector_seed is not None:
+            self.selector_seed = rand.seed(self.selector_seed)
+        self._selector = select.RandomSelector(self._tsf, 0.2)
+
     def make_parameters(self):
         """Make the affine model parameters"""
         self.pp = (torch.rand((self.s, self.p, self.n), dtype=torch.double) - 0.5) * 4
@@ -53,9 +58,7 @@ class DataSet:
             self._tsf = self.create_feature_transformation()
 
         if self._selector is None:
-            if self.selector_seed is not None:
-                self.selector_seed = rand.seed(self.selector_seed)
-            self._selector = select.RandomSelector(self._tsf, 0.2)
+            self.create_mode_selector()
 
         self._train = make.make(self.pp, self.N, self.variance, selector=self._selector, sorted=True)
         self._val = make.make(self.pp, self.N, self.variance, selector=self._selector, sorted=True)
@@ -129,6 +132,8 @@ class PolynomialDataSet(DataSet):
         ).double().to(self.device)
 
         linear[0].weight.data = self.target_params.clone()
+        # allow external debugging of network
+        self._ltsf = linear
 
         return self._tsf_from_ltsf(linear)
 
