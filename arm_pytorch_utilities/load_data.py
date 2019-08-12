@@ -46,6 +46,12 @@ class SimpleDataset(torch.utils.data.Dataset):
         return tuple(sequence[idx] for sequence in self.sequences)
 
 
+class IndexedDataset(SimpleDataset):
+    """Same as before, but with last element as the index of the data point for using in Dataloaders"""
+    def __getitem__(self, idx):
+        return tuple(sequence[idx] for sequence in self.sequences) + (idx,)
+
+
 class PartialViewDataset(torch.utils.data.Dataset):
     """Get a slice of a full dataset (for example to split training and validation set)
     taken from https://discuss.pytorch.org/t/best-way-training-data-in-pytorch/6855/2"""
