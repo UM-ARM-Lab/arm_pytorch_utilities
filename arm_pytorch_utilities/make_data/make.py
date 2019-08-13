@@ -17,7 +17,7 @@ def gt_model(xu, params, M, s, selector=None):
 
 
 def sort(U, Y, labels):
-    I = torch.argsort(U[:, 0], dim=0)
+    I = torch.argsort(labels, dim=0)
     U = U[I]
     Y = Y[I]
     labels = labels[I]
