@@ -65,7 +65,7 @@ class DataSet:
 
     def data_id(self):
         """String identification for this data"""
-        return "p_{}_n_{}_N_{}_select_seed_{}".format(string.f2s(self.p), string.f2s(self.n), string.f2s(self.N),
+        return "p_{}_n_{}_N_{}_ss_{}".format(string.f2s(self.p), string.f2s(self.n), string.f2s(self.N),
                                                       string.f2s(self.selector_seed))
 
 
