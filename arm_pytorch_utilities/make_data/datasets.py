@@ -66,7 +66,25 @@ class DataSet:
     def data_id(self):
         """String identification for this data"""
         return "p_{}_n_{}_N_{}_ss_{}".format(string.f2s(self.p), string.f2s(self.n), string.f2s(self.N),
-                                                      string.f2s(self.selector_seed))
+                                             string.f2s(self.selector_seed))
+
+    def plot_training_feature(self):
+        with torch.no_grad():
+            U, Y, labels = self._train
+            features = self.feature_transformation()(U)
+            Y = _reduce_to_1d_for_plotting(Y)
+
+            plt.figure()
+            for i in range(self.s):
+                in_cluster = labels == i
+                plt.scatter(features[in_cluster, 0], Y[in_cluster])
+            plt.xlabel('feature')
+
+
+def _reduce_to_1d_for_plotting(Y):
+    if len(Y.shape) == 2:
+        Y = Y.norm(dim=1)
+    return Y
 
 
 class LinearDataSet(DataSet):
@@ -151,6 +169,7 @@ class PolynomialDataSet(DataSet):
     def plot_training(self):
         from mpl_toolkits.mplot3d import Axes3D
         U, Y, labels = self._train
+        Y = _reduce_to_1d_for_plotting(Y)
 
         fig = plt.figure()
         ax = fig.add_subplot(111, projection='3d')
