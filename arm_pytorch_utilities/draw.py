@@ -1,6 +1,8 @@
+import matplotlib.pyplot as plt
 from matplotlib.patches import Ellipse
 import matplotlib.transforms as transforms
 import numpy as np
+from arm_pytorch_utilities import array
 
 
 def confidence_ellipse(center, cov, ax, n_std=3.0, facecolor='none', **kwargs):
@@ -48,3 +50,15 @@ def confidence_ellipse(center, cov, ax, n_std=3.0, facecolor='none', **kwargs):
 
     ellipse.set_transform(transf + ax.transData)
     return ax.add_patch(ellipse)
+
+
+def highlight_value_ranges(discrete_array, color_map='rgbcmyk', ymin=0, ymax=1, ax=None):
+    """Highlight the background of current figure with a label array; a value of 0 is left blank"""
+    for value, start, end in array.discrete_array_to_value_ranges(discrete_array):
+        if value == 0:
+            continue
+        # use the current axis if one is not given (global call on plt module will use current axis)
+        if ax is None:
+            ax = plt
+        ax.axvspan(start, end, facecolor=color_map[value % len(color_map)], alpha=0.3, ymin=ymin, ymax=ymax)
+
