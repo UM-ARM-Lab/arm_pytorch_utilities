@@ -3,6 +3,7 @@ from matplotlib.patches import Ellipse
 import matplotlib.transforms as transforms
 import numpy as np
 from arm_pytorch_utilities import array
+from arm_pytorch_utilities.model.mdn import MixtureDensityNetwork
 
 
 def confidence_ellipse(center, cov, ax, n_std=3.0, facecolor='none', **kwargs):
@@ -52,7 +53,7 @@ def confidence_ellipse(center, cov, ax, n_std=3.0, facecolor='none', **kwargs):
     return ax.add_patch(ellipse)
 
 
-def highlight_value_ranges(discrete_array, color_map='rgbcmyk', ymin=0, ymax=1, ax=None):
+def highlight_value_ranges(discrete_array, color_map='rgbcmyk', ymin=0., ymax=1., ax=None):
     """Highlight the background of current figure with a label array; a value of 0 is left blank"""
     for value, start, end in array.discrete_array_to_value_ranges(discrete_array):
         if value == 0:
@@ -62,3 +63,57 @@ def highlight_value_ranges(discrete_array, color_map='rgbcmyk', ymin=0, ymax=1, 
             ax = plt
         ax.axvspan(start, end, facecolor=color_map[value % len(color_map)], alpha=0.3, ymin=ymin, ymax=ymax)
 
+
+def plot_mdn_prediction(learned_model, X, Y, labels, axis_name, title, output_offset=2, plot_states=False,
+                        sample=False):
+    # freeze model
+    for param in learned_model.parameters():
+        param.requires_grad = False
+
+    if plot_states:
+        state_dim = X.shape[1]
+        assert state_dim == len(axis_name)
+
+        fig, axes = plt.subplots(1, state_dim, figsize=(18, 5))
+        for i in range(state_dim):
+            axes[i].set_xlabel(axis_name[i])
+            axes[i].plot(X[:, i].numpy())
+            highlight_value_ranges(labels, ax=axes[i], color_map='rr')
+        fig.suptitle(title)
+
+    # plot output/prediction (differences)
+    output_name = axis_name[output_offset:]
+    output_dim = len(output_name)
+    f2, a2 = plt.subplots(1, output_dim, figsize=(18, 5))
+
+    pi, normal = learned_model(X)
+    if sample:
+        Yhat = MixtureDensityNetwork.sample(pi, normal)
+    else:
+        Yhat = MixtureDensityNetwork.mean(pi, normal)
+
+    posterior = pi.probs
+    modes = np.argmax(posterior, axis=1)
+
+    frames = np.arange(Yhat.shape[0])
+
+    for i in range(output_dim):
+        j = i
+        a2[i].set_xlabel(output_name[i])
+        a2[i].plot(Y[:, j].numpy())
+        if sample:
+            a2[i].scatter(frames, Yhat[:, j].numpy(), alpha=0.4, color='orange')
+        else:
+            a2[i].plot(Yhat[:, j].numpy())
+
+        highlight_value_ranges(modes, ax=a2[i], ymin=0.5)
+        highlight_value_ranges(labels, ax=a2[i], color_map='rr', ymax=0.5)
+    f2.suptitle(title)
+
+    plt.figure()
+    components = posterior.shape[1]
+    for i in range(components):
+        plt.plot(posterior[:, i])
+    highlight_value_ranges(modes, ymin=0.5)
+    highlight_value_ranges(labels, color_map='rr', ymax=0.5)
+    plt.title('{} component posterior'.format(title))
