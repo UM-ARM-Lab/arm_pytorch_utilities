@@ -83,7 +83,7 @@ def plot_mdn_prediction(learned_model, X, Y, labels, axis_name, title, output_of
 
     # plot output/prediction (differences)
     output_name = axis_name[output_offset:]
-    output_dim = len(output_name)
+    output_dim = Y.shape[1]
     f2, a2 = plt.subplots(1, output_dim, figsize=(18, 5))
 
     pi, normal = learned_model(X)
