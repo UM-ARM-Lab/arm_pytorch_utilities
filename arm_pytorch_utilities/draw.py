@@ -91,6 +91,9 @@ def plot_mdn_prediction(learned_model, X, Y, labels, axis_name, title, output_of
         Yhat = MixtureDensityNetwork.sample(pi, normal)
     else:
         Yhat = MixtureDensityNetwork.mean(pi, normal)
+        stddev = MixtureDensityNetwork.stddev(pi, normal)
+        stddev = stddev.numpy()
+    Yhat = Yhat.numpy()
 
     posterior = pi.probs
     modes = np.argmax(posterior, axis=1)
@@ -100,11 +103,14 @@ def plot_mdn_prediction(learned_model, X, Y, labels, axis_name, title, output_of
     for i in range(output_dim):
         j = i
         a2[i].set_xlabel(output_name[i])
-        a2[i].plot(Y[:, j].numpy())
+        a2[i].plot(Y[:, j])
         if sample:
-            a2[i].scatter(frames, Yhat[:, j].numpy(), alpha=0.4, color='orange')
+            a2[i].scatter(frames, Yhat[:, j], alpha=0.4, color='orange')
         else:
-            a2[i].plot(Yhat[:, j].numpy())
+            mean = Yhat[:, j]
+            std = stddev[:, j]
+            a2[i].plot(mean)
+            a2[i].fill_between(frames, mean - std, mean + std, color='orange', alpha=0.2)
 
         highlight_value_ranges(modes, ax=a2[i], ymin=0.5)
         highlight_value_ranges(labels, ax=a2[i], color_map='rr', ymax=0.5)
