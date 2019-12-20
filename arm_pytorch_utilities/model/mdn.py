@@ -44,8 +44,12 @@ class MixtureDensityNetwork(nn.Module):
 
     @staticmethod
     def stddev(pi, normal):
-        stddev = torch.sum(pi.stddev.unsqueeze(2) * normal.stddev, dim=1)
+        # assuming independent
+        var = pi.mean.unsqueeze(2) ** 2 * normal.variance + pi.variance.unsqueeze(
+            2) * normal.mean ** 2 + pi.variance.unsqueeze(2) * normal.variance
+        stddev = torch.sqrt(torch.sum(var, dim=1))
         return stddev
+
 
 class MixtureDiagNormalNetwork(nn.Module):
 
