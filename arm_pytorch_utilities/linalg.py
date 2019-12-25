@@ -2,6 +2,9 @@ import torch
 from torch.autograd import Function
 import numpy as np
 import scipy.linalg
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 def kronecker_product(t1, t2):
@@ -106,6 +109,102 @@ class MatrixSquareRoot(Function):
 
 
 sqrtm = MatrixSquareRoot.apply
+
+
+class GELS(Function):
+    """ Efficient implementation of gels from
+        Nanxin Chen
+        bobchennan@gmail.com
+    """
+
+    @staticmethod
+    def forward(ctx, A, b):
+        # A: (..., M, N)
+        # b: (..., M, K)
+        # https://github.com/tensorflow/tensorflow/blob/master/tensorflow/python/ops/linalg_ops.py#L267
+        u = torch.cholesky(torch.matmul(A.transpose(-1, -2), A), upper=True)
+        ret = torch.cholesky_solve(torch.matmul(A.transpose(-1, -2), b), u, upper=True)
+        ctx.save_for_backward(u, ret, A, b)
+        return ret
+
+    @staticmethod
+    def backward(ctx, grad_output):
+        # https://github.com/tensorflow/tensorflow/blob/master/tensorflow/python/ops/linalg_grad.py#L223
+        chol, x, a, b = ctx.saved_tensors
+        z = torch.cholesky_solve(grad_output, chol, upper=True)
+        xzt = torch.matmul(x, z.transpose(-1, -2))
+        zx_sym = xzt + xzt.transpose(-1, -2)
+        grad_A = - torch.matmul(a, zx_sym) + torch.matmul(b, z.transpose(-1, -2))
+        grad_b = torch.matmul(a, z)
+        return grad_A, grad_b
+
+
+def _apply_weights(X, Y, weights):
+    if weights is not None:
+        # assume errors are uncorrelated so weight is given as a vector rather than matrix
+        w = torch.sqrt(weights).view(-1, 1)
+        # multiplying a diagonal matrix is equal to multiplying each row by the corresponding weight
+        X = w * X
+        Y = w * Y
+    return X, Y
+
+
+def ls(X, Y, weights=None):
+    X, Y = _apply_weights(X, Y, weights)
+
+    # currently no gradient support for gels
+    # params, _ = torch.gels(Y, X)
+    params = GELS.apply(X, Y)
+    # params = torch.solve(Y, X)
+    # params = torch.mm(X.pinverse(), Y)
+
+    return params
+
+
+SYMMETRIC_CORRECTION_NORM_THRESHOLD = 1e-3
+
+
+def ls_cov(X, Y, weights=None, make_symmetric=True):
+    X, Y = _apply_weights(X, Y, weights)
+
+    pinvXX = X.pinverse()
+    params = torch.mm(Y.t(), pinvXX.t())
+
+    # estimate covariance according to: http://users.stat.umn.edu/~helwig/notes/mvlr-Notes.pdf (see up to slide 66)
+    # hat/projection matrix - Yhat = H*Y
+    H = torch.mm(X, pinvXX)
+
+    N = X.shape[0]
+    n = X.shape[1]
+    # degrees of freedom
+    dof = N - n
+    assert dof >= 0
+    # estimated error covariance (unbiased estimate of error cov matrix Sigma
+    # regularize for ill-conditioned matrices
+    a = torch.eye(N, dtype=H.dtype, device=X.device) - H
+    error_covariance = Y.t().mm(a).mm(Y).div(dof)
+    error_covariance += torch.eye(error_covariance.shape[0], dtype=H.dtype, device=X.device) * 0.001
+
+    XXXX = torch.mm(X.t(), X)
+    # regularize
+    XXXX += torch.eye(XXXX.shape[0], dtype=H.dtype, device=X.device) * 0.001
+
+    if make_symmetric:
+        # correct to be symmetric (if needed)
+        error_covariance_sym = (error_covariance + error_covariance.t()) / 2
+        XXXX_sym = (XXXX + XXXX.t()) / 2
+
+        e_correction_error = (error_covariance_sym - error_covariance).norm()
+        x_correction_error = (XXXX_sym - XXXX).norm()
+        if e_correction_error > SYMMETRIC_CORRECTION_NORM_THRESHOLD or x_correction_error > SYMMETRIC_CORRECTION_NORM_THRESHOLD:
+            logger.debug('unsymmetric covariances with error %f and %f', e_correction_error, x_correction_error)
+        XXXX = XXXX_sym
+        error_covariance = error_covariance_sym
+
+    covariance = kronecker_product(error_covariance, XXXX.inverse())
+
+    return params, covariance
+
 
 if __name__ == "__main__":
     d = torch.tensor([[1, 2], [3, 4]], dtype=torch.float)
