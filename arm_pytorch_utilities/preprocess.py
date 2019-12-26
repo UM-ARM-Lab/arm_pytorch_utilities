@@ -4,24 +4,35 @@ from arm_pytorch_utilities import load_data as load_utils
 from hybrid_sysid import load_data
 import copy
 import torch
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class Preprocess(abc.ABC):
     """Pre-process the entire dataset
     with an operation fitted on the training set and applied to both training and validation set.
+    Assumes the dataset is from a dynamical system (X,U,Y,labels)
 
     Different from pytorch's transforms as those are typically applied as you retrieve the data (usually images)
     """
 
     def __init__(self, strip_affine=False):
         self.strip_affine = strip_affine
+        # allow only fit once; for refit, use a different instance of the preprocessor
+        # usually refits are mistakes
+        self.fitted = False
 
     def fit(self, dataset):
+        if self.fitted:
+            logger.warning("Ignoring attempt to refit preprocessor")
+            return
         XU, Y, labels = load_data.get_states_from_dataset(dataset)
         # strip last affine column
         if self.strip_affine:
             XU = XU[:, :-1]
         self._fit_impl(XU, Y, labels)
+        self.fitted = True
 
     def transform(self, dataset):
         XU, Y, labels = load_data.get_states_from_dataset(dataset)
