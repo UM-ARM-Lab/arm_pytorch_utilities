@@ -4,6 +4,7 @@ import matplotlib.transforms as transforms
 import numpy as np
 from arm_pytorch_utilities import array
 from arm_pytorch_utilities.model.mdn import MixtureDensityNetwork
+import torch
 
 
 def confidence_ellipse(center, cov, ax, n_std=3.0, facecolor='none', **kwargs):
@@ -65,7 +66,8 @@ def highlight_value_ranges(discrete_array, color_map='rgbcmyk', ymin=0., ymax=1.
 
 
 def plot_mdn_prediction(learned_model, X, Y, labels, axis_name, title, output_offset=2, plot_states=False,
-                        sample=False):
+                        sample=0):
+    N = X.shape[0]
     # freeze model
     for param in learned_model.parameters():
         param.requires_grad = False
@@ -89,6 +91,9 @@ def plot_mdn_prediction(learned_model, X, Y, labels, axis_name, title, output_of
     pi, normal = learned_model(X)
     if sample:
         Yhat = MixtureDensityNetwork.sample(pi, normal)
+        # sample multiple times
+        for _ in range(1, sample):
+            Yhat = torch.cat((Yhat, MixtureDensityNetwork.sample(pi, normal)), dim=0)
     else:
         Yhat = MixtureDensityNetwork.mean(pi, normal)
         stddev = MixtureDensityNetwork.stddev(pi, normal)
@@ -98,7 +103,9 @@ def plot_mdn_prediction(learned_model, X, Y, labels, axis_name, title, output_of
     posterior = pi.probs
     modes = np.argmax(posterior, axis=1)
 
-    frames = np.arange(Yhat.shape[0])
+    frames = np.arange(N)
+    if sample:
+        frames = np.tile(frames, sample)
 
     for i in range(output_dim):
         j = i
