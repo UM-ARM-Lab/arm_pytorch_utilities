@@ -7,6 +7,15 @@ import logging
 logger = logging.getLogger(__name__)
 
 
+def batch_quadratic_product(X, A):
+    """
+    Batch multiplication of x^T A x.
+    :param X: K x nx where each x is a row in X
+    :param A: nx x nx
+    """
+    return torch.einsum('ij,kj,ik->i', X, A, X)
+
+
 def kronecker_product(t1, t2):
     """
     Computes the Kronecker product between two tensors.
