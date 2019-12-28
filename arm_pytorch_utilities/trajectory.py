@@ -211,3 +211,24 @@ def estimate_cost(cur_timestep, cost, lgpolicy, dynamics, horizon, x0, prevx, pr
     cv = np.mean(cv, axis=0)
     Cm = np.mean(Cm, axis=0)
     return cv, Cm, F, f, mu, trajsig
+
+
+def dlqr(A, B, Q, R):
+    """Solve the discrete time lqr controller.
+
+    x[k+1] = A x[k] + B u[k]
+
+    cost = sum x[k].T*Q*x[k] + u[k].T*R*u[k]
+    """
+
+    # ref Bertsekas, p.151
+
+    # first, try to solve the ricatti equation
+    X = sp.linalg.solve_discrete_are(A, B, Q, R)
+
+    # compute the LQR gain
+    K = sp.linalg.inv(B.T @ X @ B + R) @ (B.T @ X @ A)
+
+    eigVals, eigVecs = sp.linalg.eig(A - B @ K)
+
+    return K, X, eigVals
