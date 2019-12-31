@@ -31,4 +31,4 @@ def make_deterministic_model(**kwargs):
 
 def make_mdn_model(output_dim=3, num_components=4, H_units=32, **kwargs):
     mdn_block = MixtureDensityNetwork(H_units, output_dim, num_components)
-    return make_sequential_network(end_block=mdn_block, **kwargs)
+    return make_sequential_network(end_block=mdn_block, fc_output_dim=H_units, **kwargs)
