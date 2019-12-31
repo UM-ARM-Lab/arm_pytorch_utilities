@@ -3,6 +3,87 @@ import torch.utils.data
 import numpy as np
 import scipy.io
 import os
+import abc
+
+
+class DataConfig:
+    """
+    Data class holding configuration information about a dataset
+    """
+
+    def __init__(self, sort_data=True, predict_difference=True, force_affine=False):
+        self.sort_data = sort_data
+        self.predict_difference = predict_difference
+        self.force_affine = force_affine
+        # unknown quantities until we encounter data (optional)
+        self.nx = None
+        self.nu = None
+        self.ny = None
+
+    def load_data_info(self, x, u=None, y=None):
+        self.nx = x.shape[1]
+        if u is not None:
+            self.nu = u.shape[1]
+        if y is not None:
+            self.ny = y.shape[1]
+
+    def __repr__(self):
+        return "s_{}_pd_{}_a_{}".format(
+            *(int(config) for config in (self.sort_data, self.predict_difference, self.force_affine)))
+
+
+class DataLoader(abc.ABC):
+    """
+    Driver for loading a dataset from file.
+    Each dataset should subclass DataLoader and specialize process file raw data to saved content.
+    """
+
+    def __init__(self, file_cfg, dir_to_load, config: DataConfig):
+        self.dir = dir_to_load
+        self.data = None
+        self.config = config
+        self.file_cfg = file_cfg
+
+    @abc.abstractmethod
+    def _process_file_raw_data(self, d):
+        """
+        Turn a file's dictionary content into a data sequence, each element of which has the same number of rows
+        :param d: file's dictionary content
+        :return: tuple of data sequence
+        """
+
+    def load_file(self, full_filename):
+        raw_data = scipy.io.loadmat(full_filename)
+        file_data = self._process_file_raw_data(raw_data)
+        if self.data is None:
+            self.data = list(file_data)
+        else:
+            for i in range(len(self.data)):
+                self.data[i] = np.row_stack((self.data[i], file_data[i]))
+        return self.data
+
+    def load(self):
+        full_dir = os.path.join(self.file_cfg.DATA_DIR, self.dir)
+
+        if os.path.isfile(full_dir):
+            self.load_file(full_dir)
+        else:
+            files = os.listdir(full_dir)
+            # consistent with the way MATLAB loads files
+            if self.config.sort_data:
+                files = sorted(files)
+
+            for file in files:
+                full_filename = '{}/{}'.format(full_dir, file)
+                if os.path.isdir(full_filename):
+                    continue
+                self.load_file(full_filename)
+        return self.data
+
+
+def make_affine(X):
+    N = X.shape[0]
+    return torch.cat((X, torch.ones((N, 1), dtype=X.dtype)), dim=1)
 
 
 class RandomNumberDataset(torch.utils.data.Dataset):
