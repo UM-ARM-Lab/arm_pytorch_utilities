@@ -3,20 +3,21 @@ import torch.nn
 from arm_pytorch_utilities.model.mdn import MixtureDensityNetwork
 
 
-def make_fully_connected_layers(input_dim=7, output_dim=3, H_units=32, H_layers=3):
+def make_fully_connected_layers(input_dim=7, output_dim=3, H_units=32, H_layers=3, bias=True):
     layers = []
     for i in range(H_layers):
         in_dim = input_dim if i == 0 else H_units
         out_dim = output_dim if i == H_layers - 1 else H_units
-        layers.append(torch.nn.Linear(in_dim, out_dim, bias=True))
+        layers.append(torch.nn.Linear(in_dim, out_dim, bias=bias))
         layers.append(torch.nn.LeakyReLU())
     return layers
 
 
-def make_sequential_network(end_block=None, input_dim=7, output_dim=3, H_units=32, H_layers=3, fc_output_dim=None):
+def make_sequential_network(end_block=None, input_dim=7, output_dim=3, H_units=32, H_layers=3, fc_output_dim=None,
+                            **kwargs):
     fc_output_dim = fc_output_dim or output_dim
     layers = make_fully_connected_layers(input_dim=input_dim, output_dim=fc_output_dim, H_units=H_units,
-                                         H_layers=H_layers)
+                                         H_layers=H_layers, **kwargs)
     if end_block:
         layers.append(end_block)
 
