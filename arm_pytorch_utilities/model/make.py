@@ -4,13 +4,14 @@ from arm_pytorch_utilities.model.mdn import MixtureDensityNetwork
 from arm_pytorch_utilities.load_data import DataConfig
 
 
-def make_fully_connected_layers(input_dim=7, output_dim=3, H_units=32, H_layers=3, bias=True):
+def make_fully_connected_layers(input_dim=7, h_units=(32, 32, 32), bias=True, activation_factory=torch.nn.LeakyReLU):
     layers = []
-    for i in range(H_layers):
-        in_dim = input_dim if i == 0 else H_units
-        out_dim = output_dim if i == H_layers - 1 else H_units
+    h_layers = len(h_units)
+    for i in range(h_layers):
+        in_dim = input_dim if i == 0 else h_units[i - 1]
+        out_dim = h_units[i]
         layers.append(torch.nn.Linear(in_dim, out_dim, bias=bias))
-        layers.append(torch.nn.LeakyReLU())
+        layers.append(activation_factory())
     return layers
 
 
@@ -31,7 +32,7 @@ def make_linear_end_block(bias=True, activation=None):
     return make_block
 
 
-def make_sequential_network(config: DataConfig, end_block_factory=make_linear_end_block(), H_units=32, H_layers=3,
+def make_sequential_network(config: DataConfig, end_block_factory=make_linear_end_block(), h_units=(32, 32, 32),
                             **kwargs):
     if config.nx is None:
         raise RuntimeError("Unsepcified input dimension in config; load data first")
@@ -44,12 +45,8 @@ def make_sequential_network(config: DataConfig, end_block_factory=make_linear_en
         input_dim += config.nu
     output_dim = config.ny
 
-    # fully connected output size depends on if there
-    fc_output_dim = H_units
-
-    layers = make_fully_connected_layers(input_dim=input_dim, output_dim=fc_output_dim, H_units=H_units,
-                                         H_layers=H_layers, **kwargs)
-    layers.append(end_block_factory(H_units, output_dim))
+    layers = make_fully_connected_layers(input_dim=input_dim, h_units=h_units, **kwargs)
+    layers.append(end_block_factory(h_units[-1], output_dim))
 
     network = torch.nn.Sequential(*layers).double()
     return network
