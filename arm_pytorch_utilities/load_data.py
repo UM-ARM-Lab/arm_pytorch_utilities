@@ -11,9 +11,17 @@ class DataConfig:
     Data class holding configuration information about a dataset
     """
 
-    def __init__(self, sort_data=True, predict_difference=True, force_affine=False):
+    def __init__(self, sort_data=True, predict_difference=True, predict_all_dims=False, force_affine=False):
+        """
+
+        :param sort_data: Whether the experiments (data between files) are sorted (by random seed id)
+        :param predict_difference: Whether the prediction should be the state difference or the next state
+        :param predict_all_dims: Whether the prediction should include all state dimensions (some datasets do this regardless)
+        :param force_affine: Whether a column of 1s should be added to XU to make the dataset effectively affine
+        """
         self.sort_data = sort_data
         self.predict_difference = predict_difference
+        self.predict_all_dims = predict_all_dims
         self.force_affine = force_affine
         # unknown quantities until we encounter data (optional)
         self.nx = None
