@@ -65,6 +65,18 @@ def highlight_value_ranges(discrete_array, color_map='rgbcmyk', ymin=0., ymax=1.
         ax.axvspan(start, end, facecolor=color_map[value % len(color_map)], alpha=0.3, ymin=ymin, ymax=ymax)
 
 
+def plot_state(X, labels, axis_name, title):
+    state_dim = X.shape[1]
+    assert state_dim == len(axis_name)
+
+    fig, axes = plt.subplots(1, state_dim, figsize=(18, 5))
+    for i in range(state_dim):
+        axes[i].set_xlabel(axis_name[i])
+        axes[i].plot(X[:, i].numpy())
+        highlight_value_ranges(labels, ax=axes[i], color_map='rr')
+    fig.suptitle(title)
+
+
 def plot_mdn_prediction(learned_model, X, Y, labels, axis_name, title, output_offset=2, plot_states=False,
                         sample=0):
     N = X.shape[0]
@@ -73,15 +85,7 @@ def plot_mdn_prediction(learned_model, X, Y, labels, axis_name, title, output_of
         param.requires_grad = False
 
     if plot_states:
-        state_dim = X.shape[1]
-        assert state_dim == len(axis_name)
-
-        fig, axes = plt.subplots(1, state_dim, figsize=(18, 5))
-        for i in range(state_dim):
-            axes[i].set_xlabel(axis_name[i])
-            axes[i].plot(X[:, i].numpy())
-            highlight_value_ranges(labels, ax=axes[i], color_map='rr')
-        fig.suptitle(title)
+        plot_state(X, labels, axis_name, title)
 
     # plot output/prediction (differences)
     output_name = axis_name[output_offset:]
@@ -130,3 +134,33 @@ def plot_mdn_prediction(learned_model, X, Y, labels, axis_name, title, output_of
     highlight_value_ranges(modes, ymin=0.5)
     highlight_value_ranges(labels, color_map='rr', ymax=0.5)
     plt.title('{} component posterior'.format(title))
+
+
+def plot_prediction(learned_model, X, Y, labels, axis_name, title, output_offset=2, plot_states=False, sample=None):
+    # ignore sample, just there to ensure consistent API with probabilistic models
+    # freeze model
+    for param in learned_model.parameters():
+        param.requires_grad = False
+
+    if plot_states:
+        plot_state(X, labels, axis_name, title)
+
+    # plot output/prediction (differences)
+    output_name = axis_name[output_offset:]
+    output_dim = Y.shape[1]
+    f2, a2 = plt.subplots(1, output_dim, figsize=(18, 5))
+
+    Yhat = learned_model(X)
+    Yhat = Yhat.numpy()
+
+    for i in range(output_dim):
+        j = i
+        a2[i].set_xlabel(output_name[i])
+        a2[i].plot(Y[:, j])
+
+        mean = Yhat[:, j]
+        a2[i].plot(mean)
+        highlight_value_ranges(labels, ax=a2[i], color_map='rr', ymax=0.5)
+    f2.legend('')
+
+    f2.suptitle(title)
