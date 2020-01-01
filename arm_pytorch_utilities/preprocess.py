@@ -97,4 +97,4 @@ class SklearnPreprocessing(Preprocess):
         return self.transform_x(XU), self.transform_y(Y), labels
 
     def invert_transform(self, y):
-        return self.methodY.inverse_transform(y)
+        return torch.from_numpy(self.methodY.inverse_transform(y))
