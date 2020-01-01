@@ -11,29 +11,49 @@ class DataConfig:
     Data class holding configuration information about a dataset
     """
 
-    def __init__(self, sort_data=True, predict_difference=True, predict_all_dims=False, force_affine=False):
+    def __init__(self, sort_data=True, predict_difference=True, predict_all_dims=False, force_affine=False,
+                 expanded_input=False):
         """
 
         :param sort_data: Whether the experiments (data between files) are sorted (by random seed id)
         :param predict_difference: Whether the prediction should be the state difference or the next state
         :param predict_all_dims: Whether the prediction should include all state dimensions (some datasets do this regardless)
         :param force_affine: Whether a column of 1s should be added to XU to make the dataset effectively affine
+        :param expanded_input: Whether the input has extra dimensions (packed in control dimension)
         """
         self.sort_data = sort_data
         self.predict_difference = predict_difference
         self.predict_all_dims = predict_all_dims
         self.force_affine = force_affine
+        self.expanded_input = expanded_input
         # unknown quantities until we encounter data (optional)
         self.nx = None
         self.nu = None
         self.ny = None
+        # sometimes the full input is larger than xu (such as with expanded input)
+        self.n_input = None
 
-    def load_data_info(self, x, u=None, y=None):
+    def load_data_info(self, x, u=None, y=None, full_input=None):
         self.nx = x.shape[1]
         if u is not None:
             self.nu = u.shape[1]
         if y is not None:
             self.ny = y.shape[1]
+        if full_input is not None:
+            self.n_input = full_input.shape[1]
+        if self.expanded_input and full_input is None:
+            raise RuntimeError("Need to load full input with expanded input")
+
+    def input_dim(self):
+        if not self.nx:
+            raise RuntimeError("Need to load data info first before asking for input dim")
+        if self.n_input:
+            return self.n_input
+        # else assume we're inputting xu
+        ni = self.nx
+        if self.nu:
+            ni += self.nu
+        return ni
 
     def __repr__(self):
         return "s_{}_pd_{}_a_{}".format(

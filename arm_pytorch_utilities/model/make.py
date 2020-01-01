@@ -34,15 +34,11 @@ def make_linear_end_block(bias=True, activation=None):
 
 def make_sequential_network(config: DataConfig, end_block_factory=make_linear_end_block(), h_units=(32, 32, 32),
                             **kwargs):
-    if config.nx is None:
-        raise RuntimeError("Unsepcified input dimension in config; load data first")
     # must have end block (otherwise we would always leave with an activation)
     if end_block_factory is None:
         raise RuntimeError("Need an end block to network")
     # setup input and output sizes based on data
-    input_dim = config.nx
-    if config.nu:
-        input_dim += config.nu
+    input_dim = config.input_dim()
     output_dim = config.ny
 
     layers = make_fully_connected_layers(input_dim=input_dim, h_units=h_units, **kwargs)
