@@ -1,6 +1,7 @@
 import torch
 import torch.nn
 from arm_pytorch_utilities.model.mdn import MixtureDensityNetwork
+from arm_pytorch_utilities.load_data import DataConfig
 
 
 def make_fully_connected_layers(input_dim=7, output_dim=3, H_units=32, H_layers=3, bias=True):
@@ -13,22 +14,42 @@ def make_fully_connected_layers(input_dim=7, output_dim=3, H_units=32, H_layers=
     return layers
 
 
-def make_sequential_network(end_block=None, input_dim=7, output_dim=3, H_units=32, H_layers=3, fc_output_dim=None,
+def make_mdn_end_block(num_components=4):
+    def make_block(fc_output_dim, output_dim):
+        return MixtureDensityNetwork(fc_output_dim, output_dim, num_components)
+
+    return make_block
+
+
+def make_linear_end_block(bias=True, activation=None):
+    def make_block(fc_output_dim, output_dim):
+        layers = [torch.nn.Linear(fc_output_dim, output_dim, bias=bias)]
+        if activation:
+            layers.append(activation())
+        return torch.nn.Sequential(*layers).double()
+
+    return make_block
+
+
+def make_sequential_network(config: DataConfig, end_block_factory=make_linear_end_block(), H_units=32, H_layers=3,
                             **kwargs):
-    fc_output_dim = fc_output_dim or output_dim
+    if config.nx is None:
+        raise RuntimeError("Unsepcified input dimension in config; load data first")
+    # must have end block (otherwise we would always leave with an activation)
+    if end_block_factory is None:
+        raise RuntimeError("Need an end block to network")
+    # setup input and output sizes based on data
+    input_dim = config.nx
+    if config.nu:
+        input_dim += config.nu
+    output_dim = config.ny
+
+    # fully connected output size depends on if there
+    fc_output_dim = H_units
+
     layers = make_fully_connected_layers(input_dim=input_dim, output_dim=fc_output_dim, H_units=H_units,
                                          H_layers=H_layers, **kwargs)
-    if end_block:
-        layers.append(end_block)
+    layers.append(end_block_factory(H_units, output_dim))
 
     network = torch.nn.Sequential(*layers).double()
     return network
-
-
-def make_deterministic_model(**kwargs):
-    return make_sequential_network(end_block=None, **kwargs)
-
-
-def make_mdn_model(output_dim=3, num_components=4, H_units=32, **kwargs):
-    mdn_block = MixtureDensityNetwork(H_units, output_dim, num_components)
-    return make_sequential_network(end_block=mdn_block, fc_output_dim=H_units, **kwargs)
