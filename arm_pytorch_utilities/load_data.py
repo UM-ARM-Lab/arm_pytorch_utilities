@@ -11,7 +11,7 @@ class DataConfig:
     Data class holding configuration information about a dataset
     """
 
-    def __init__(self, sort_data=True, predict_difference=True, predict_all_dims=False, force_affine=False,
+    def __init__(self, sort_data=True, predict_difference=True, predict_all_dims=True, force_affine=False,
                  expanded_input=False):
         """
 
