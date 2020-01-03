@@ -40,14 +40,14 @@ class Preprocess(abc.ABC):
             XU = XU[:, :-1]
         XU, Y, labels = self._transform_impl(XU, Y, labels)
         if self.strip_affine:
-            XU = torch.cat((xu, XU[:, -1].view(-1, 1)), dim=1)
+            XU = torch.cat((XU, XU[:, -1].view(-1, 1)), dim=1)
         return load_utils.SimpleDataset(XU, Y, labels)
 
     def transform_x(self, XU):
         return XU
 
     def transform_y(self, Y):
-        return y
+        return Y
 
     def invert_transform(self, y):
         raise NotImplemented
