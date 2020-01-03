@@ -32,7 +32,7 @@ def make_linear_end_block(bias=True, activation=None):
     return make_block
 
 
-def make_sequential_network(config: DataConfig, end_block_factory=make_linear_end_block(), h_units=(32, 32, 32),
+def make_sequential_network(config: DataConfig, end_block_factory=make_linear_end_block(), h_units=(32, 32),
                             **kwargs):
     # must have end block (otherwise we would always leave with an activation)
     if end_block_factory is None:
