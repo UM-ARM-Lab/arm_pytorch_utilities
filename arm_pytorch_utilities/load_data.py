@@ -55,9 +55,15 @@ class DataConfig:
             ni += self.nu
         return ni
 
+    def __str__(self):
+        return "s_{}_pd_{}_pa_{}_a_{}_e_{}".format(
+            *(int(config) for config in
+              (self.sort_data, self.predict_difference, self.predict_all_dims, self.force_affine, self.expanded_input)))
+
     def __repr__(self):
-        return "s_{}_pd_{}_a_{}".format(
-            *(int(config) for config in (self.sort_data, self.predict_difference, self.force_affine)))
+        return "DataConfig(sort_data={}, predict_difference={}, predict_all_dims={}, force_affine={}, " \
+               "expanded_input={})".format(
+            self.sort_data, self.predict_difference, self.predict_all_dims, self.force_affine, self.expanded_input)
 
 
 class DataLoader(abc.ABC):
