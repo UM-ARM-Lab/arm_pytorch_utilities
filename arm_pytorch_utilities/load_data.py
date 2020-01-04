@@ -155,14 +155,14 @@ class SimpleDataset(torch.utils.data.Dataset):
         return len(self.sequences[0])
 
     def __getitem__(self, idx):
-        return tuple(sequence[idx] for sequence in self.sequences)
+        return tuple(sequence[idx] if sequence is not None else [] for sequence in self.sequences)
 
 
 class IndexedDataset(SimpleDataset):
     """Same as before, but with last element as the index of the data point for using in Dataloaders"""
 
     def __getitem__(self, idx):
-        return tuple(sequence[idx] for sequence in self.sequences) + (idx,)
+        return tuple(sequence[idx] if sequence is not None else [] for sequence in self.sequences) + (idx,)
 
 
 class PartialViewDataset(torch.utils.data.Dataset):
