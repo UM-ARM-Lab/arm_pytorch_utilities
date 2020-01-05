@@ -4,6 +4,7 @@ import numpy as np
 import scipy.io
 import os
 import abc
+from typing import Type
 
 
 class DataConfig:
@@ -73,7 +74,9 @@ class DataLoader(abc.ABC):
     Each dataset should subclass DataLoader and specialize process file raw data to saved content.
     """
 
-    def __init__(self, file_cfg, dir_to_load, config: DataConfig):
+    def __init__(self, file_cfg=None, dir_to_load=None, config=DataConfig()):
+        if file_cfg is None or dir_to_load is None:
+            raise RuntimeError("Incomplete specification of DataLoader")
         self.dir = dir_to_load
         self.data = None
         self.config = config
@@ -190,6 +193,51 @@ class PartialViewDataset(torch.utils.data.Dataset):
         if idx >= self.length:
             raise StopIteration()
         return self.data[idx + self.offset]
+
+
+class LoaderXUYDataset(torch.utils.data.Dataset):
+    def __init__(self, loader: Type[DataLoader], dirs=('raw',), filter_on_labels=None, max_num=None,
+                 config=DataConfig()):
+        if type(dirs) is str:
+            dirs = [dirs]
+        self.XU = None
+        self.Y = None
+        self.labels = None
+        for dir in dirs:
+            dl = loader(dir_to_load=dir, config=config)
+            XU, Y, labels = dl.load()
+            if self.XU is None:
+                self.XU = XU
+                self.Y = Y
+                self.labels = labels
+            else:
+                self.XU = np.row_stack((self.XU, XU))
+                self.Y = np.row_stack((self.Y, Y))
+                self.labels = np.row_stack((self.labels, labels))
+        self._convert_types()
+        if filter_on_labels:
+            self.XU, self.Y, self.labels = filter_on_labels(self.XU, self.Y, self.labels)
+
+        if config.force_affine:
+            self.XU = make_affine(self.XU)
+
+        if max_num is not None:
+            self.XU = self.XU[:max_num]
+            self.Y = self.Y[:max_num]
+            self.labels = self.labels[:max_num]
+
+        super().__init__()
+
+    def _convert_types(self):
+        self.XU = torch.from_numpy(self.XU).double()
+        self.Y = torch.from_numpy(self.Y).double()
+        self.labels = torch.from_numpy(self.labels).byte()
+
+    def __len__(self):
+        return self.XU.shape[0]
+
+    def __getitem__(self, idx):
+        return self.XU[idx], self.Y[idx], self.labels[idx]
 
 
 def splitTrainValidationSets(dataset, validation_ratio=0.1):
