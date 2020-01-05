@@ -1,4 +1,10 @@
 import math
+import torch
+
+
+def clip(a, min_val, max_val):
+    """Vectorized torch.clamp (supports tensors for min_val and max_val)"""
+    return torch.max(torch.min(a, max_val), min_val)
 
 
 def rotate_wrt_origin(xy, theta):
