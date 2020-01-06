@@ -1,7 +1,6 @@
 import abc
 
-from arm_pytorch_utilities import load_data as load_utils
-from hybrid_sysid import load_data
+from arm_pytorch_utilities import load_data
 import copy
 import torch
 import logging
@@ -27,7 +26,7 @@ class Preprocess(abc.ABC):
         if self.fitted:
             logger.warning("Ignoring attempt to refit preprocessor")
             return
-        XU, Y, labels = load_data.get_states_from_dataset(dataset)
+        XU, Y, labels = load_data.get_all_data_from_dataset(dataset)
         # strip last affine column
         if self.strip_affine:
             XU = XU[:, :-1]
@@ -35,13 +34,13 @@ class Preprocess(abc.ABC):
         self.fitted = True
 
     def transform(self, dataset):
-        XU, Y, labels = load_data.get_states_from_dataset(dataset)
+        XU, Y, labels = load_data.get_all_data_from_dataset(dataset)
         if self.strip_affine:
             XU = XU[:, :-1]
         XU, Y, labels = self._transform_impl(XU, Y, labels)
         if self.strip_affine:
             XU = torch.cat((XU, XU[:, -1].view(-1, 1)), dim=1)
-        return load_utils.SimpleDataset(XU, Y, labels)
+        return load_data.SimpleDataset(XU, Y, labels)
 
     def transform_x(self, XU):
         return XU
