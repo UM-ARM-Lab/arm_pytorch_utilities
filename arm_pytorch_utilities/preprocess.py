@@ -112,3 +112,81 @@ class SklearnPreprocessing(Preprocess):
 
     def invert_transform(self, y):
         return torch.from_numpy(self.methodY.inverse_transform(y))
+
+
+class SingleTransformer:
+    """Transformer like Sklearn's transformers; pytorch version to pass through differentiation"""
+
+    @abc.abstractmethod
+    def fit(self, X):
+        """Fit to data"""
+
+    @abc.abstractmethod
+    def transform(self, X):
+        """Transform data based on previous fit"""
+
+    @abc.abstractmethod
+    def inverse_transform(self, X):
+        """The inverse transformation"""
+
+
+class PytorchPreprocessing(Preprocess):
+    def __init__(self, method: SingleTransformer, methodY=None, **kwargs):
+        super().__init__(**kwargs)
+        self.method = method
+        self.methodY = methodY or copy.deepcopy(method)
+
+    def _fit_impl(self, XU, Y, labels):
+        self.method.fit(XU)
+        self.methodY.fit(Y)
+
+    def transform_x(self, XU):
+        return self.method.transform(XU)
+
+    def transform_y(self, Y):
+        return self.methodY.transform(Y)
+
+    def invert_transform(self, y):
+        return self.methodY.inverse_transform(y)
+
+
+class MinMaxScaler(SingleTransformer):
+    def __init__(self, feature_range=(0, 1), **kwargs):
+        super().__init__(**kwargs)
+        self.feature_range = feature_range
+        self._scale, self._min = None, None
+
+    def fit(self, X):
+        feature_range = self.feature_range
+        # TODO assume we have no nans for now
+        data_min = torch.min(X, dim=0)[0]
+        data_max = torch.max(X, dim=0)[0]
+
+        data_range = data_max - data_min
+        # handle zeros/no variation in that dimension
+        data_range[data_range == 0.] = 1.
+        self._scale = ((feature_range[1] - feature_range[0]) / data_range)
+        self._min = feature_range[0] - data_min * self._scale
+
+    def transform(self, X):
+        return (X * self._scale) + self._min
+
+    def inverse_transform(self, X):
+        return (X - self._min) / self._scale
+
+
+class StandardScaler(SingleTransformer):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self._m = None
+        self._s = None
+
+    def fit(self, X):
+        self._m = X.mean(0, keepdim=True)
+        self._s = X.std(0, unbiased=False, keepdim=True)
+
+    def transform(self, X):
+        return (X - self._m) / self._s
+
+    def inverse_transform(self, X):
+        return (X * self._s) + self._m
