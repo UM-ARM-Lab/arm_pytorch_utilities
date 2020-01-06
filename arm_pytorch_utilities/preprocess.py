@@ -42,6 +42,28 @@ class Preprocess(abc.ABC):
             XU = torch.cat((XU, XU[:, -1].view(-1, 1)), dim=1)
         return load_data.SimpleDataset(XU, Y, labels)
 
+    @abc.abstractmethod
+    def transform_x(self, XU):
+        """Apply transformation on XU"""
+
+    @abc.abstractmethod
+    def transform_y(self, Y):
+        """Apply transformation on Y"""
+
+    @abc.abstractmethod
+    def invert_transform(self, y):
+        """Invert transformation on Y"""
+
+    @abc.abstractmethod
+    def _fit_impl(self, XU, Y, labels):
+        """Fit internal state to training set"""
+
+    def _transform_impl(self, XU, Y, labels):
+        # apply transformation and return transformed copies of data
+        return self.transform_x(XU), self.transform_y(Y), labels
+
+
+class NoTransform(Preprocess):
     def transform_x(self, XU):
         return XU
 
@@ -55,12 +77,8 @@ class Preprocess(abc.ABC):
         # optionally do some fitting on the training set
         pass
 
-    def _transform_impl(self, XU, Y, labels):
-        # apply transformation and return transformed copies of data
-        return self.transform_x(XU), self.transform_y(Y), labels
 
-
-class PolynomialState(Preprocess):
+class PolynomialState(NoTransform):
     def __init__(self, order=2, **kwargs):
         super().__init__(**kwargs)
         from sklearn.preprocessing import PolynomialFeatures
@@ -91,9 +109,6 @@ class SklearnPreprocessing(Preprocess):
     def transform_y(self, Y):
         y = self.methodY.transform(Y)
         return torch.from_numpy(y)
-
-    def _transform_impl(self, XU, Y, labels):
-        return self.transform_x(XU), self.transform_y(Y), labels
 
     def invert_transform(self, y):
         return torch.from_numpy(self.methodY.inverse_transform(y))
