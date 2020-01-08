@@ -105,7 +105,7 @@ def lqr(cost, lgpolicy, dynamics,
             else:
                 reg_del = max(del0, reg_del * del0)
                 reg_mu = max(min_mu, reg_mu * reg_del)
-                LOGGER.debug('[LQR reg] Increasing mu -> %f', reg_mu)
+                # LOGGER.debug('[LQR reg] Increasing mu -> %f', reg_mu)
         elif decrease_mu:
             reg_del = min(1 / del0, reg_del / del0)
             delmu = reg_del * reg_mu
@@ -113,7 +113,7 @@ def lqr(cost, lgpolicy, dynamics,
                 reg_mu = delmu
             else:
                 reg_mu = min_mu
-                LOGGER.debug('[LQR reg] Decreasing mu -> %f', reg_mu)
+                # LOGGER.debug('[LQR reg] Decreasing mu -> %f', reg_mu)
 
     policy = LinearGaussianPolicy(K, k, pSig, cholPSig, invPSig)
 
