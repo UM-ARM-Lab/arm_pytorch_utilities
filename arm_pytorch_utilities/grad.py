@@ -18,5 +18,5 @@ def jacobian(f, x):
     x = x.repeat(noutputs, 1)
     x.requires_grad_(True)
     y = f(x)
-    y.backward(torch.eye(noutputs))
+    y.backward(torch.eye(noutputs, dtype=y.dtype))
     return x.grad.data
