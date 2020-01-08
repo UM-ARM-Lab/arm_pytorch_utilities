@@ -60,9 +60,6 @@ class FileDataSource(DataSource):
         self._validation_ratio = validation_ratio
         self.make_data()
 
-    def make_parameters(self):
-        pass
-
     def make_data(self):
         full_set = load_data.LoaderXUYDataset(loader=self.loader, dirs=self._data_dir, max_num=self.N,
                                               config=self.config)
