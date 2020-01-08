@@ -38,3 +38,8 @@ def angular_diff_batch(a, b):
     d[d > math.pi] -= 2 * math.pi
     d[d < -math.pi] += 2 * math.pi
     return d
+
+
+def angle_normalize(a):
+    """Wrap angle between (-pi,pi)"""
+    return ((a + math.pi) % (2 * math.pi)) - math.pi
