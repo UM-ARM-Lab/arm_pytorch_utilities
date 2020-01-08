@@ -1,5 +1,5 @@
 import torch
-from arm_pytorch_utilities import string
+from arm_pytorch_utilities import str_utils
 from arm_pytorch_utilities import load_data
 from typing import Type
 import abc
@@ -34,7 +34,7 @@ class DataSource:
 
     def data_id(self):
         """String identification for this data"""
-        return "N_{}".format(string.f2s(self.N))
+        return "N_{}".format(str_utils.f2s(self.N))
 
 
 class FileDataSource(DataSource):
@@ -79,4 +79,4 @@ class FileDataSource(DataSource):
 
     def data_id(self):
         """String identification for this data"""
-        return "{}_N_{}_{}".format(self._data_dir, string.f2s(self.N), self.config)
+        return "{}_N_{}_{}".format(self._data_dir, str_utils.f2s(self.N), self.config)
