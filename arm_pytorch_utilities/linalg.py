@@ -12,6 +12,7 @@ def batch_quadratic_product(X, A):
     Batch multiplication of x^T A x.
     :param X: K x nx where each x is a row in X
     :param A: nx x nx
+    :returns K x 1 product of each x^T A x
     """
     return torch.einsum('ij,kj,ik->i', X, A, X)
 
