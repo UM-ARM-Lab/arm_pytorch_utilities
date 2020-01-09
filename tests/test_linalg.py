@@ -32,6 +32,19 @@ def test_sqrtm():
     assert test is True
 
 
+def test_batch_outer_prodcut():
+    n = 5
+    N = 10
+    u = torch.rand(N, n)
+    v = torch.rand(N, n)
+    UV = linalg.batch_outer_product(u, v)
+    assert UV.shape == (N, n, n)
+    for i in range(N):
+        uv = torch.ger(u[i], v[i])
+        assert torch.allclose(uv, UV[i])
+
+
 if __name__ == "__main__":
     test_cov()
     test_sqrtm()
+    test_batch_outer_prodcut()

@@ -10,11 +10,21 @@ logger = logging.getLogger(__name__)
 def batch_quadratic_product(X, A):
     """
     Batch multiplication of x^T A x.
-    :param X: K x nx where each x is a row in X
+    :param X: N x nx where each x is a row in X
     :param A: nx x nx
-    :returns K x 1 product of each x^T A x
+    :returns N x 1 product of each x^T A x
     """
     return torch.einsum('ij,kj,ik->i', X, A, X)
+
+
+def batch_outer_product(u, v):
+    """
+    Batch outer product
+    :param u: N x nx
+    :param v: N x nx
+    :return: N x nx nx where each 'row' is the outer product of each row of u and v
+    """
+    return torch.einsum('ij,ik->ijk', u, v)
 
 
 def kronecker_product(t1, t2):
