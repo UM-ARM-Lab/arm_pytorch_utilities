@@ -37,6 +37,6 @@ def batch_jacobian(f, x):
     x = x.repeat(1, ny, 1)  # b, ny, nx
     x.requires_grad_(True)
     y = f(x)
-    input_val = torch.eye(ny, dtype=y.dtype).reshape(1, ny, ny).repeat(b, 1, 1)
+    input_val = torch.eye(ny, dtype=y.dtype).repeat(b, 1, 1)
     y.backward(input_val)
     return x.grad.data
