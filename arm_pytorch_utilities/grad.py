@@ -14,9 +14,29 @@ def jacobian(f, x):
     if x.dim() < 2:
         x = x.view(1, -1)
     y = f(x)
-    noutputs = y.shape[1]
-    x = x.repeat(noutputs, 1)
+    ny = y.shape[1]
+    x = x.repeat(ny, 1)
     x.requires_grad_(True)
     y = f(x)
-    y.backward(torch.eye(noutputs, dtype=y.dtype))
+    y.backward(torch.eye(ny, dtype=y.dtype))
+    return x.grad.data
+
+
+def batch_jacobian(f, x):
+    """
+    Compute jacobian for a batch of x
+    :param f: f(x) -> y (supporting batch input B x <some num> x nx), such as a NN
+    :param x: B x nx
+    :return: df/dx(x) B x ny x nx jacobian of f evaluated at each x
+    """
+    y = f(x)
+    ny = y.shape[1]
+
+    x = x.unsqueeze(1)  # b, 1, nx
+    b = x.shape[0]
+    x = x.repeat(1, ny, 1)  # b, ny, nx
+    x.requires_grad_(True)
+    y = f(x)
+    input_val = torch.eye(ny, dtype=y.dtype).reshape(1, ny, ny).repeat(b, 1, 1)
+    y.backward(input_val)
     return x.grad.data

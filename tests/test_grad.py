@@ -2,6 +2,8 @@ import torch
 from arm_pytorch_utilities import grad
 
 
+
+
 def test_jacobian():
     def f1(x):
         return torch.cat((x ** 2, (2 * x[:, 0] + torch.log(x[:, 1])).view(-1, 1)), dim=1)
@@ -37,5 +39,21 @@ def test_jacobian():
     assert torch.allclose(j3, net.weight)
 
 
+def test_batch_jacobian():
+    # test batch jacobian
+    N = 10
+    nx = 5
+    nout_f2 = 3
+    net = torch.nn.Linear(nx, nout_f2, bias=False)
+
+    x = torch.rand((N, nx))
+    jall = grad.batch_jacobian(net, x)
+    assert jall.shape == (N, nout_f2, nx)
+    for i in range(N):
+        j = grad.jacobian(net, x[i])
+        assert torch.allclose(jall[i], j)
+
+
 if __name__ == "__main__":
-    test_jacobian()
+    # test_jacobian()
+    test_batch_jacobian()
