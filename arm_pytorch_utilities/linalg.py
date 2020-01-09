@@ -19,12 +19,22 @@ def batch_quadratic_product(X, A):
 
 def batch_outer_product(u, v):
     """
-    Batch outer product
+    Batch outer product uv^T
     :param u: N x nx
     :param v: N x nx
-    :return: N x nx nx where each 'row' is the outer product of each row of u and v
+    :return: N x nx x nx where each 'row' is the outer product of each row of u and v
     """
     return torch.einsum('ij,ik->ijk', u, v)
+
+
+def batch_batch_product(X, A):
+    """
+    Batch multiplication of y = Ax where both A and x are batched
+    :param X: N x nx
+    :param A: N x ny x nx
+    :return: N x ny product of each A with each x
+    """
+    return torch.einsum('ijk,ik->ij', A, X)
 
 
 def kronecker_product(t1, t2):

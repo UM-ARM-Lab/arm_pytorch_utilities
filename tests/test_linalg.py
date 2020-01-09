@@ -44,7 +44,22 @@ def test_batch_outer_prodcut():
         assert torch.allclose(uv, UV[i])
 
 
+def test_batch_batch_product():
+    B = 1000
+    ny = 10
+    nx = 20
+    A = torch.rand(B, ny, nx)
+    X = torch.rand(B, nx)
+
+    Y = linalg.batch_batch_product(X, A)
+    assert Y.shape == (B, ny)
+    for i in range(B):
+        y = A[i] @ X[i]
+        assert torch.allclose(Y[i], y)
+
+
 if __name__ == "__main__":
     test_cov()
     test_sqrtm()
     test_batch_outer_prodcut()
+    test_batch_batch_product()
