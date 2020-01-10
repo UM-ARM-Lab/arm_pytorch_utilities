@@ -194,15 +194,15 @@ def ls(X, Y, weights=None):
 SYMMETRIC_CORRECTION_NORM_THRESHOLD = 1e-3
 
 
-def ls_cov(X, Y, weights=None, make_symmetric=True):
+def ls_cov(X, Y, weights=None, make_symmetric=True, sigreg=1e-4):
     X, Y = _apply_weights(X, Y, weights)
 
     pinvXX = X.pinverse()
-    params = torch.mm(Y.t(), pinvXX.t())
+    params = (pinvXX @ Y).t()
 
     # estimate covariance according to: http://users.stat.umn.edu/~helwig/notes/mvlr-Notes.pdf (see up to slide 66)
     # hat/projection matrix - Yhat = H*Y
-    H = torch.mm(X, pinvXX)
+    H = X @ pinvXX
 
     N = X.shape[0]
     n = X.shape[1]
@@ -212,12 +212,12 @@ def ls_cov(X, Y, weights=None, make_symmetric=True):
     # estimated error covariance (unbiased estimate of error cov matrix Sigma
     # regularize for ill-conditioned matrices
     a = torch.eye(N, dtype=H.dtype, device=X.device) - H
-    error_covariance = Y.t().mm(a).mm(Y).div(dof)
-    error_covariance += torch.eye(error_covariance.shape[0], dtype=H.dtype, device=X.device) * 0.001
+    error_covariance = Y.t() @ a @ Y / dof
+    error_covariance += torch.eye(error_covariance.shape[0], dtype=H.dtype, device=X.device) * sigreg
 
-    XXXX = torch.mm(X.t(), X)
+    XXXX = X.t() @ X
     # regularize
-    XXXX += torch.eye(XXXX.shape[0], dtype=H.dtype, device=X.device) * 0.001
+    XXXX += torch.eye(XXXX.shape[0], dtype=H.dtype, device=X.device) * sigreg
 
     if make_symmetric:
         # correct to be symmetric (if needed)
@@ -231,6 +231,7 @@ def ls_cov(X, Y, weights=None, make_symmetric=True):
         XXXX = XXXX_sym
         error_covariance = error_covariance_sym
 
+    # TODO might be able to use cholesky decomp here since XXXX > 0
     covariance = kronecker_product(error_covariance, XXXX.inverse())
 
     return params, covariance
