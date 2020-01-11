@@ -26,16 +26,20 @@ def check_shape(value, expected_shape, name=''):
                          (name, str(expected_shape), str(value.shape)))
 
 
-def extract_positive_weights(weights):
+def extract_positive_weights(weights, force_numerical_weights=False):
     """
-    Extract the indices and values of weights that are positive
+    Extract the indices and values of weights that are positive.
     :param weights: single dimensional weight tensor, or non-floating point array/np.ndarray
+    :param force_numerical_weights: whether the weights have to be numerical, or if they can be None on hard weights
     :return: indices, values, number
     """
     # assume floating point type means weights are soft
     if torch.is_tensor(weights) and torch.is_floating_point(weights):
         return _extract_soft_weights(weights)
-    return _extract_hard_weights(weights)
+    indices, weights, N = _extract_hard_weights(weights)
+    if force_numerical_weights:
+        weights = torch.ones(N, dtype=torch.double)
+    return indices, weights, N
 
 
 def _extract_soft_weights(w):
@@ -46,9 +50,9 @@ def _extract_soft_weights(w):
 
 def _extract_hard_weights(w):
     if torch.is_tensor(w):
-        return w, torch.ones_like(w, dtype=torch.double), w.shape[0]
+        return w, None, w.shape[0]
     if isinstance(w, slice):
         N = w.stop - w.start
-        return w, torch.ones(N, dtype=torch.double), N
+        return w, None, N
     else:
         raise RuntimeError("Unhandled weight type {}".format(type(w)))
