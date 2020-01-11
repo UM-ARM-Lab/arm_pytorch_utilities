@@ -10,8 +10,9 @@ class DataSource:
     Source of data, agnostic to its creation method; public API for data
     """
 
-    def __init__(self, N=None, use_gpu_if_available=False):
+    def __init__(self, N=None, config=load_data.DataConfig(), use_gpu_if_available=False):
         self.N = N
+        self.config = config
 
         # GPU speedup
         if use_gpu_if_available and torch.cuda.is_available():
@@ -40,7 +41,6 @@ class DataSource:
 class FileDataSource(DataSource):
     def __init__(self, loader: Type[load_data.DataLoader], data_dir, preprocessor=None,
                  validation_ratio=0.2,
-                 config=load_data.DataConfig(),
                  **kwargs):
         """
         :param loader: data loader specializing to what's stored in each file
@@ -55,7 +55,6 @@ class FileDataSource(DataSource):
 
         self.loader = loader
         self.preprocessor = preprocessor
-        self.config = config
         self._data_dir = data_dir
         self._validation_ratio = validation_ratio
         self.make_data()
