@@ -1,10 +1,10 @@
 import matplotlib.pyplot as plt
-from matplotlib.patches import Ellipse
 import matplotlib.transforms as transforms
 import numpy as np
-from arm_pytorch_utilities import array
-from arm_pytorch_utilities.model.mdn import MixtureDensityNetwork
 import torch
+from arm_pytorch_utilities import array_utils
+from arm_pytorch_utilities.model.mdn import MixtureDensityNetwork
+from matplotlib.patches import Ellipse
 
 
 def confidence_ellipse(center, cov, ax, n_std=3.0, facecolor='none', **kwargs):
@@ -56,7 +56,7 @@ def confidence_ellipse(center, cov, ax, n_std=3.0, facecolor='none', **kwargs):
 
 def highlight_value_ranges(discrete_array, color_map='rgbcmyk', ymin=0., ymax=1., ax=None):
     """Highlight the background of current figure with a label array; a value of 0 is left blank"""
-    for value, start, end in array.discrete_array_to_value_ranges(discrete_array):
+    for value, start, end in array_utils.discrete_array_to_value_ranges(discrete_array):
         if value == 0:
             continue
         # use the current axis if one is not given (global call on plt module will use current axis)

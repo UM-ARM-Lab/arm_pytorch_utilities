@@ -1,7 +1,7 @@
 """ This file defines the linear Gaussian policy class from GPS. """
 import numpy as np
 import scipy as sp
-from arm_pytorch_utilities.array import check_shape
+from arm_pytorch_utilities.array_utils import check_shape
 
 
 class LinearGaussianPolicy:
