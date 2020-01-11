@@ -30,10 +30,10 @@ def extract_positive_weights(weights):
     """
     Extract the indices and values of weights that are positive
     :param weights: single dimensional weight tensor, or non-floating point array/np.ndarray
-    :return:
+    :return: indices, values, number
     """
     # assume floating point type means weights are soft
-    if torch.is_floating_point(weights):
+    if torch.is_tensor(weights) and torch.is_floating_point(weights):
         return _extract_soft_weights(weights)
     return _extract_hard_weights(weights)
 
@@ -41,10 +41,10 @@ def extract_positive_weights(weights):
 def _extract_soft_weights(w):
     neighbours = w > 0
     nw = w[neighbours]
-    return neighbours, nw
+    return neighbours, nw, nw.shape[0]
 
 
 def _extract_hard_weights(w):
     if torch.is_tensor(w):
         return w, torch.ones_like(w).double()
-    return w, np.ones_like(w)
+    return w, np.ones_like(w), len(w)
