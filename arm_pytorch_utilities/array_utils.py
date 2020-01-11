@@ -46,5 +46,9 @@ def _extract_soft_weights(w):
 
 def _extract_hard_weights(w):
     if torch.is_tensor(w):
-        return w, torch.ones_like(w).double()
-    return w, np.ones_like(w), len(w)
+        return w, torch.ones_like(w, dtype=torch.double), w.shape[0]
+    if isinstance(w, slice):
+        N = w.stop - w.start
+        return w, torch.ones(N, dtype=torch.double), N
+    else:
+        raise RuntimeError("Unhandled weight type {}".format(type(w)))
