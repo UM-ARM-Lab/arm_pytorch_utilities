@@ -1,10 +1,19 @@
 import math
+
 import torch
 
 
 def clip(a, min_val, max_val):
     """Vectorized torch.clamp (supports tensors for min_val and max_val)"""
     return torch.max(torch.min(a, max_val), min_val)
+
+
+def replace_nan_and_inf(a, replacement=0):
+    """Replaces nan,inf,-inf values with replacement value in place"""
+    a[torch.isnan(a)] = replacement
+    a[a == float('inf')] = replacement
+    a[a == -float('inf')] = replacement
+    return a
 
 
 def get_bounds(u_min=None, u_max=None):
