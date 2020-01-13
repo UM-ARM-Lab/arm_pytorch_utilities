@@ -1,9 +1,9 @@
 import abc
-
-from arm_pytorch_utilities import load_data
 import copy
-import torch
 import logging
+
+import torch
+from arm_pytorch_utilities import load_data
 
 logger = logging.getLogger(__name__)
 
@@ -42,6 +42,10 @@ class Preprocess(abc.ABC):
             XU = torch.cat((XU, XU[:, -1].view(-1, 1)), dim=1)
         return load_data.SimpleDataset(XU, Y, labels)
 
+    def update_data_config(self, config: load_data.DataConfig):
+        """Change the dimensions of the data's configuration to match what the preprocessing will do"""
+        pass
+
     @abc.abstractmethod
     def transform_x(self, XU):
         """Apply transformation on XU"""
@@ -51,7 +55,7 @@ class Preprocess(abc.ABC):
         """Apply transformation on Y"""
 
     @abc.abstractmethod
-    def invert_transform(self, y):
+    def invert_transform(self, Y):
         """Invert transformation on Y"""
 
     @abc.abstractmethod
@@ -70,7 +74,7 @@ class NoTransform(Preprocess):
     def transform_y(self, Y):
         return Y
 
-    def invert_transform(self, y):
+    def invert_transform(self, Y):
         raise NotImplemented
 
     def _fit_impl(self, XU, Y, labels):
@@ -110,8 +114,8 @@ class SklearnPreprocessing(Preprocess):
         y = self.methodY.transform(Y)
         return torch.from_numpy(y)
 
-    def invert_transform(self, y):
-        return torch.from_numpy(self.methodY.inverse_transform(y))
+    def invert_transform(self, Y):
+        return torch.from_numpy(self.methodY.inverse_transform(Y))
 
 
 class SingleTransformer:
@@ -146,8 +150,8 @@ class PytorchPreprocessing(Preprocess):
     def transform_y(self, Y):
         return self.methodY.transform(Y)
 
-    def invert_transform(self, y):
-        return self.methodY.inverse_transform(y)
+    def invert_transform(self, Y):
+        return self.methodY.inverse_transform(Y)
 
 
 class MinMaxScaler(SingleTransformer):

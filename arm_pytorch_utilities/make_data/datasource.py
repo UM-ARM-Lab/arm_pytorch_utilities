@@ -1,8 +1,10 @@
-import torch
-from arm_pytorch_utilities import str_utils
-from arm_pytorch_utilities import load_data
-from typing import Type
 import abc
+from typing import Type
+
+import torch
+from arm_pytorch_utilities import load_data
+from arm_pytorch_utilities import preprocess
+from arm_pytorch_utilities import str_utils
 
 
 class DataSource:
@@ -39,7 +41,7 @@ class DataSource:
 
 
 class FileDataSource(DataSource):
-    def __init__(self, loader: Type[load_data.DataLoader], data_dir, preprocessor=None,
+    def __init__(self, loader: Type[load_data.DataLoader], data_dir, preprocessor: preprocess.Preprocess = None,
                  validation_ratio=0.2,
                  **kwargs):
         """
@@ -69,6 +71,7 @@ class FileDataSource(DataSource):
 
         if self.preprocessor:
             self.preprocessor.fit(train_set)
+            self.preprocessor.update_data_config(self.config)
             # apply on training and validation set
             train_set = self.preprocessor.transform(train_set)
             validation_set = self.preprocessor.transform(validation_set)
