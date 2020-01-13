@@ -55,8 +55,8 @@ class Preprocess(abc.ABC):
         """Apply transformation on Y"""
 
     @abc.abstractmethod
-    def invert_transform(self, Y):
-        """Invert transformation on Y"""
+    def invert_transform(self, Y, X=None):
+        """Invert transformation on Y with potentially information from X"""
 
     @abc.abstractmethod
     def _fit_impl(self, XU, Y, labels):
@@ -74,7 +74,7 @@ class NoTransform(Preprocess):
     def transform_y(self, Y):
         return Y
 
-    def invert_transform(self, Y):
+    def invert_transform(self, Y, X=None):
         raise NotImplemented
 
     def _fit_impl(self, XU, Y, labels):
@@ -114,7 +114,7 @@ class SklearnPreprocessing(Preprocess):
         y = self.methodY.transform(Y)
         return torch.from_numpy(y)
 
-    def invert_transform(self, Y):
+    def invert_transform(self, Y, X=None):
         return torch.from_numpy(self.methodY.inverse_transform(Y))
 
 
@@ -150,7 +150,7 @@ class PytorchPreprocessing(Preprocess):
     def transform_y(self, Y):
         return self.methodY.transform(Y)
 
-    def invert_transform(self, Y):
+    def invert_transform(self, Y, X=None):
         return self.methodY.inverse_transform(Y)
 
 
