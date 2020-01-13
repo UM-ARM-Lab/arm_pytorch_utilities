@@ -79,6 +79,11 @@ class FileDataSource(DataSource):
         self._train = load_data.get_all_data_from_dataset(train_set)
         self._val = load_data.get_all_data_from_dataset(validation_set)
 
+    def update_preprocessor(self, preprocessor):
+        """Change the preprocessor, which involves remaking the data"""
+        self.preprocessor = preprocessor
+        self.make_data()
+
     def data_id(self):
         """String identification for this data"""
         return "{}_N_{}_{}".format(self._data_dir, str_utils.f2s(self.N), self.config)
