@@ -3,6 +3,7 @@ import logging
 import os
 
 import torch
+from arm_pytorch_utilities import array_utils
 from arm_pytorch_utilities.optim import Lookahead
 
 logger = logging.getLogger(__name__)
@@ -46,7 +47,27 @@ class LearnableParameterizedModel:
         for param in self.parameters():
             param.requires_grad = True
 
+    def get_last_checkpoint(self):
+        """
+        Get the last checkpoint for a model matching this one's name (with the highest number of training steps)
+        :return: either '' or the filename of the last checkpoint
+        """
+        base_dir = os.path.join(self.save_root_dir, 'checkpoints')
+        # look for files with this base name, what follows should be step.tar
+        # (use . after name to prevent matching prefix)
+        checkpoints = [filename for filename in os.listdir(base_dir) if filename.startswith(self.name + '.')]
+        if not checkpoints:
+            return ''
+        # order by step
+        array_utils.sort_nicely(checkpoints)
+        return os.path.join(base_dir, checkpoints[-1])
+
     def save(self, last=False):
+        """
+        Save the model to a checkpoint
+        :param last: whether it's the last save of the training and to log where we saved to
+        :return:
+        """
         state = {
             'step': self.step,
             'state_dict': self._model_state_dict(),
@@ -61,6 +82,11 @@ class LearnableParameterizedModel:
             logger.info("saved checkpoint %s", full_name)
 
     def load(self, filename):
+        """
+        Load the model from the filename for a checkpoint
+        :param filename:
+        :return: whether we successfully loaded the checkpoint or not
+        """
         if not os.path.isfile(filename):
             return False
         checkpoint = torch.load(filename)
