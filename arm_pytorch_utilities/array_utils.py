@@ -1,6 +1,6 @@
+import re
 from itertools import groupby
 
-import numpy as np
 import torch
 
 
@@ -56,3 +56,29 @@ def _extract_hard_weights(w):
         return w, None, N
     else:
         raise RuntimeError("Unhandled weight type {}".format(type(w)))
+
+
+def _tryint(s):
+    try:
+        return int(s)
+    except:
+        return s
+
+
+def _alphanum_key(s):
+    """
+    Turn a string into a list of string and number chunks.
+        "z23a" -> ["z", 23, "a"]
+    :param s:
+    :return:
+    """
+    return [_tryint(c) for c in re.split('([0-9]+)', s)]
+
+
+def sort_nicely(l):
+    """
+    In place sort list in the way that humans expects; from https://nedbatchelder.com/blog/200712/human_sorting.html
+    :param l: list
+    :return:
+    """
+    l.sort(key=_alphanum_key)
