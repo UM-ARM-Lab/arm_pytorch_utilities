@@ -64,7 +64,7 @@ class DataConfig:
                self.expanded_input, self.y_in_x_space
 
     def __str__(self):
-        return "s_{}_pd_{}_pa_{}_a_{}_e_{}_y_{}".format(
+        return "{}_{}_s_{}_pd_{}_pa_{}_a_{}_e_{}_y_{}".format(self.input_dim(), self.ny,
             *(int(config) for config in self.options()))
 
     def __repr__(self):
