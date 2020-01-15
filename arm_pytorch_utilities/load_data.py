@@ -1,10 +1,11 @@
-import torch
-import torch.utils.data
+import abc
+import os
+from typing import Type
+
 import numpy as np
 import scipy.io
-import os
-import abc
-from typing import Type
+import torch
+import torch.utils.data
 
 
 class DataConfig:
@@ -13,7 +14,7 @@ class DataConfig:
     """
 
     def __init__(self, sort_data=True, predict_difference=True, predict_all_dims=True, force_affine=False,
-                 expanded_input=False):
+                 expanded_input=False, y_in_x_space=True):
         """
 
         :param sort_data: Whether the experiments (data between files) are sorted (by random seed id)
@@ -21,12 +22,14 @@ class DataConfig:
         :param predict_all_dims: Whether the prediction should include all state dimensions (some datasets do this regardless)
         :param force_affine: Whether a column of 1s should be added to XU to make the dataset effectively affine
         :param expanded_input: Whether the input has extra dimensions (packed in control dimension)
+        :param y_in_x_space: Whether the output is in the same space as state; if not then a lot of assumptions will not hold
         """
         self.sort_data = sort_data
         self.predict_difference = predict_difference
         self.predict_all_dims = predict_all_dims
         self.force_affine = force_affine
         self.expanded_input = expanded_input
+        self.y_in_x_space = y_in_x_space
         # unknown quantities until we encounter data (optional)
         self.nx = None
         self.nu = None
@@ -57,15 +60,16 @@ class DataConfig:
         return ni
 
     def options(self):
-        return self.sort_data, self.predict_difference, self.predict_all_dims, self.force_affine, self.expanded_input
+        return self.sort_data, self.predict_difference, self.predict_all_dims, self.force_affine, \
+               self.expanded_input, self.y_in_x_space
 
     def __str__(self):
-        return "s_{}_pd_{}_pa_{}_a_{}_e_{}".format(
+        return "s_{}_pd_{}_pa_{}_a_{}_e_{}_y_{}".format(
             *(int(config) for config in self.options()))
 
     def __repr__(self):
         return "DataConfig(sort_data={}, predict_difference={}, predict_all_dims={}, force_affine={}, " \
-               "expanded_input={})".format(*self.options())
+               "expanded_input={}, y_in_x_space={})".format(*self.options())
 
 
 class DataLoader(abc.ABC):
