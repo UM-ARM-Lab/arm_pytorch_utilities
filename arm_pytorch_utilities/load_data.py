@@ -64,8 +64,8 @@ class DataConfig:
                self.expanded_input, self.y_in_x_space
 
     def __str__(self):
-        return "{}_{}_s_{}_pd_{}_pa_{}_a_{}_e_{}_y_{}".format(self.input_dim(), self.ny,
-            *(int(config) for config in self.options()))
+        return "i{}_o{}_s{}_pd{}_pa{}_a{}_e{}_y{}".format(self.input_dim(), self.ny,
+                                                          *(int(config) for config in self.options()))
 
     def __repr__(self):
         return "DataConfig(sort_data={}, predict_difference={}, predict_all_dims={}, force_affine={}, " \
