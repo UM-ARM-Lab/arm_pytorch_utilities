@@ -93,4 +93,5 @@ class LearnableParameterizedModel:
         self.step = checkpoint['step']
         self._load_model_state_dict(checkpoint['state_dict'])
         self.optimizer.load_state_dict(checkpoint['optimizer'])
+        logger.info("loaded checkpoint at step %d for %s", self.step, self.name)
         return True
