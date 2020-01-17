@@ -1,6 +1,7 @@
 import math
 
 import torch
+from arm_pytorch_utilities import linalg
 
 
 def clip(a, min_val, max_val):
@@ -27,8 +28,18 @@ def get_bounds(u_min=None, u_max=None):
 
 
 def rotate_wrt_origin(xy, theta):
-    return (xy[0] * math.cos(theta) + xy[1] * math.sin(theta),
-            -xy[0] * math.sin(theta) + xy[1] * math.cos(theta))
+    return (xy[0] * math.cos(theta) - xy[1] * math.sin(theta),
+            xy[0] * math.sin(theta) + xy[1] * math.cos(theta))
+
+
+def batch_rotate_wrt_origin(xy, theta):
+    # create rotation matrices
+    c = torch.cos(theta).view(-1, 1)
+    s = torch.sin(theta).view(-1, 1)
+    top = torch.cat((c, s), dim=1)
+    bot = torch.cat((-s, c), dim=1)
+    R = torch.cat((top.unsqueeze(2), bot.unsqueeze(2)), dim=2)
+    return linalg.batch_batch_product(xy, R)
 
 
 def angular_diff(a, b):
