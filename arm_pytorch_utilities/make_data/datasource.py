@@ -12,15 +12,11 @@ class DataSource:
     Source of data, agnostic to its creation method; public API for data
     """
 
-    def __init__(self, N=None, config=load_data.DataConfig(), use_gpu_if_available=False):
+    def __init__(self, N=None, config=load_data.DataConfig(), device="cpu"):
         self.N = N
         self.config = config
 
-        # GPU speedup
-        if use_gpu_if_available and torch.cuda.is_available():
-            self.device = torch.device("cuda")
-        else:
-            self.device = torch.device("cpu")
+        self.d = torch.device(device)
 
         self._train = None
         self._val = None
@@ -63,7 +59,7 @@ class FileDataSource(DataSource):
 
     def make_data(self):
         full_set = load_data.LoaderXUYDataset(loader=self.loader, dirs=self._data_dir, max_num=self.N,
-                                              config=self.config)
+                                              config=self.config, device=self.d)
         train_set, validation_set = load_data.split_train_validation(full_set,
                                                                      validation_ratio=self._validation_ratio)
 

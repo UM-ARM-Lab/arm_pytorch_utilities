@@ -201,7 +201,7 @@ class PartialViewDataset(torch.utils.data.Dataset):
 
 class LoaderXUYDataset(torch.utils.data.Dataset):
     def __init__(self, loader: Type[DataLoader], dirs=('raw',), filter_on_labels=None, max_num=None,
-                 config=DataConfig()):
+                 config=DataConfig(), device="cpu"):
         if type(dirs) is str:
             dirs = [dirs]
         self.XU = None
@@ -218,7 +218,7 @@ class LoaderXUYDataset(torch.utils.data.Dataset):
                 self.XU = np.row_stack((self.XU, XU))
                 self.Y = np.row_stack((self.Y, Y))
                 self.labels = np.row_stack((self.labels, labels))
-        self._convert_types()
+        self._convert_types(device)
         if filter_on_labels:
             self.XU, self.Y, self.labels = filter_on_labels(self.XU, self.Y, self.labels)
 
@@ -232,10 +232,10 @@ class LoaderXUYDataset(torch.utils.data.Dataset):
 
         super().__init__()
 
-    def _convert_types(self):
-        self.XU = torch.from_numpy(self.XU).double()
-        self.Y = torch.from_numpy(self.Y).double()
-        self.labels = torch.from_numpy(self.labels).byte()
+    def _convert_types(self, device):
+        self.XU = torch.from_numpy(self.XU).double().to(device=device)
+        self.Y = torch.from_numpy(self.Y).double().to(device=device)
+        self.labels = torch.from_numpy(self.labels).byte().to(device=device)
 
     def __len__(self):
         return self.XU.shape[0]
@@ -274,7 +274,7 @@ def get_all_data_from_dataset(dataset):
     x0, y0, ls = dataset[0]
     XU = x0.new_zeros((len(dataset), x0.shape[0]))
     Y = x0.new_zeros((len(dataset), y0.shape[0]))
-    labels = torch.zeros(len(dataset), dtype=ls.dtype)
+    labels = torch.zeros(len(dataset), dtype=ls.dtype, device=x0.device)
     for i, data in enumerate(dataset, 0):
         xu, y, ls = data
         XU[i] = xu
