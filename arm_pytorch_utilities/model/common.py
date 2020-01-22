@@ -25,6 +25,9 @@ class LearnableParameterizedModel:
         :return: Iterable holding this transform's parameters
         """
 
+    def device(self):
+        return next(self.parameters()).device
+
     @abc.abstractmethod
     def _model_state_dict(self):
         """
