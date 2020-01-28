@@ -56,7 +56,7 @@ class Preprocess(abc.ABC):
 
     @abc.abstractmethod
     def invert_transform(self, Y, X=None):
-        """Invert transformation on Y with potentially information from X"""
+        """Invert transformation on Y with potentially information from X (untransformed)"""
 
     @abc.abstractmethod
     def _fit_impl(self, XU, Y, labels):
