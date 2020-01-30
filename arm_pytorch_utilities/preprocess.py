@@ -152,6 +152,17 @@ class SingleTransformer:
         """The inverse transformation"""
 
 
+class NullSingleTransformer(SingleTransformer):
+    def fit(self, X):
+        pass
+
+    def transform(self, X):
+        return X
+
+    def inverse_transform(self, X):
+        return X
+
+
 class PytorchTransformer(Transformer):
     def __init__(self, method: SingleTransformer, methodY=None):
         super().__init__()
