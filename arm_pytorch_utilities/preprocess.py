@@ -51,6 +51,40 @@ class Transformer(abc.ABC):
         """Fit internal state to training set"""
 
 
+class Compose(Transformer):
+    """Compose a list of preprocessors to be applied in order"""
+
+    def __init__(self, transforms: typing.List[Transformer]):
+        # order matters here; applied from left to right
+        self.transforms = transforms
+        super(Compose, self).__init__()
+
+    def _fit_impl(self, XU, Y, labels):
+        for t in self.transforms:
+            t._fit_impl(XU, Y, labels)
+            XU, Y, labels = t.transform(XU, Y, labels)
+
+    def transform_x(self, XU):
+        for t in self.transforms:
+            XU = t.transform_x(XU)
+        return XU
+
+    def transform_y(self, Y):
+        for t in self.transforms:
+            Y = t.transform_y(Y)
+        return Y
+
+    def invert_transform(self, Y, X=None):
+        # need to also reverse order
+        for t in reversed(self.transforms):
+            Y = t.invert_transform(Y, X)
+        return Y
+
+    def update_data_config(self, config: load_data.DataConfig):
+        for t in self.transforms:
+            t.update_data_config(config)
+
+
 class NoTransform(Transformer):
     def transform_x(self, XU):
         return XU
@@ -67,8 +101,8 @@ class NoTransform(Transformer):
 
 
 class PolynomialState(NoTransform):
-    def __init__(self, order=2, **kwargs):
-        super().__init__(**kwargs)
+    def __init__(self, order=2):
+        super().__init__()
         from sklearn.preprocessing import PolynomialFeatures
         self.poly = PolynomialFeatures(order, include_bias=False)
 
@@ -81,8 +115,8 @@ class PolynomialState(NoTransform):
 
 
 class SklearnTransformer(Transformer):
-    def __init__(self, method, methodY=None, **kwargs):
-        super().__init__(**kwargs)
+    def __init__(self, method, methodY=None):
+        super().__init__()
         self.method = method
         self.methodY = methodY or copy.deepcopy(method)
 
@@ -119,8 +153,8 @@ class SingleTransformer:
 
 
 class PytorchTransformer(Transformer):
-    def __init__(self, method: SingleTransformer, methodY=None, **kwargs):
-        super().__init__(**kwargs)
+    def __init__(self, method: SingleTransformer, methodY=None):
+        super().__init__()
         self.method = method
         self.methodY = methodY or copy.deepcopy(method)
 
