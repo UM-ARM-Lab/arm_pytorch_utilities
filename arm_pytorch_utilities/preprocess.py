@@ -232,7 +232,7 @@ class StandardScaler(SingleTransformer):
 
 
 class DatasetPreprocessor(abc.ABC):
-    """Pre-process the entire dataset
+    """Wrapper around Transformer for datasets
     with a transformation fitted on the training set and applied to both training and validation set.
     Assumes the dataset is from a dynamical system (X,U,Y,labels)
     """
