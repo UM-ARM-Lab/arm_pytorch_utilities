@@ -158,8 +158,13 @@ class SingleTransformer:
         """The inverse transformation"""
 
     def data_dim_change(self):
-        """How this transform changed the dimension of the data"""
-        return 0
+        """How this transform changed the dimension of the data.
+
+        Also gives enough info to tell if it changed nx or nu
+
+        :return: (change in dimensions, smallest index of dimension created/removed)
+        """
+        return 0, None
 
 
 class NullSingleTransformer(SingleTransformer):
@@ -193,8 +198,16 @@ class PytorchTransformer(Transformer):
         return self.methodY.inverse_transform(Y)
 
     def update_data_config(self, config: load_data.DataConfig):
-        config.n_input = config.input_dim() + self.method.data_dim_change()
-        config.ny = config.ny + self.methodY.data_dim_change()
+        change, loc = self.method.data_dim_change()
+        if loc is not None:
+            if loc < config.nx:
+                config.nx += change
+            else:
+                config.nu += change
+            if config.n_input:
+                config.n_input += change
+        change, _ = self.methodY.data_dim_change()
+        config.ny += change
 
 
 class MinMaxScaler(SingleTransformer):
@@ -264,7 +277,7 @@ class AngleToCosSinRepresentation(SingleTransformer):
         return torch.cat((X[:, :self.angle_index], theta.view(-1, 1), X[:, self.angle_index + 2:]), dim=1)
 
     def data_dim_change(self):
-        return 1
+        return 1, self.angle_index
 
 
 class DatasetPreprocessor(abc.ABC):
