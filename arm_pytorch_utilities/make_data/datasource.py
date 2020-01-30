@@ -37,14 +37,14 @@ class DataSource:
 
 
 class FileDataSource(DataSource):
-    def __init__(self, loader: Type[load_data.DataLoader], data_dir, preprocessor: preprocess.Preprocess = None,
+    def __init__(self, loader: Type[load_data.DataLoader], data_dir, preprocessor: preprocess.Transformer = None,
                  validation_ratio=0.2,
                  **kwargs):
         """
         :param loader: data loader specializing to what's stored in each file
         :param data_dir: data directory or list of directories
         :param predict_difference: whether the output should be the state differences or states
-        :param preprocessor: data preprocessor, such as StandardizeVariance
+        :param preprocessor: data transformer/preprocessor, such as StandardizeVariance
         :param validation_ratio: amount of data set aside for validation
         :param kwargs:
         """
@@ -52,12 +52,12 @@ class FileDataSource(DataSource):
         super().__init__(**kwargs)
 
         self.loader = loader
-        self.preprocessor = preprocessor
         self._data_dir = data_dir
         self._validation_ratio = validation_ratio
         # data before preprocessing; set only if we have a preprocessor
         self._val_unprocessed = None
-        self.make_data()
+        self.preprocessor = None
+        self.update_preprocessor(preprocessor)
 
     def make_data(self):
         full_set = load_data.LoaderXUYDataset(loader=self.loader, dirs=self._data_dir, max_num=self.N,
@@ -84,7 +84,8 @@ class FileDataSource(DataSource):
 
     def update_preprocessor(self, preprocessor):
         """Change the preprocessor, which involves remaking the data"""
-        self.preprocessor = preprocessor
+        self.preprocessor = preprocess.DatasetPreprocessor(preprocessor) if \
+            isinstance(preprocessor, preprocess.Transformer) else preprocessor
         self.make_data()
 
     def data_id(self):

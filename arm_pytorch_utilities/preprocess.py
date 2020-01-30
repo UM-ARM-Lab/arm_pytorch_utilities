@@ -1,6 +1,7 @@
 import abc
 import copy
 import logging
+import typing
 
 import torch
 from arm_pytorch_utilities import load_data
@@ -8,39 +9,26 @@ from arm_pytorch_utilities import load_data
 logger = logging.getLogger(__name__)
 
 
-class Preprocess(abc.ABC):
-    """Pre-process the entire dataset
-    with an operation fitted on the training set and applied to both training and validation set.
-    Assumes the dataset is from a dynamical system (X,U,Y,labels)
-
+class Transformer(abc.ABC):
+    """Like sklearn's Transformers
     Different from pytorch's transforms as those are typically applied as you retrieve the data (usually images)
     """
 
-    def __init__(self, strip_affine=False):
-        self.strip_affine = strip_affine
+    def __init__(self):
         # allow only fit once; for refit, use a different instance of the preprocessor
         # usually refits are mistakes
         self.fitted = False
 
-    def fit(self, dataset):
+    def fit(self, XU, Y, labels=None):
         if self.fitted:
             logger.warning("Ignoring attempt to refit preprocessor")
             return
-        XU, Y, labels = load_data.get_all_data_from_dataset(dataset)
-        # strip last affine column
-        if self.strip_affine:
-            XU = XU[:, :-1]
         self._fit_impl(XU, Y, labels)
         self.fitted = True
 
-    def transform(self, dataset):
-        XU, Y, labels = load_data.get_all_data_from_dataset(dataset)
-        if self.strip_affine:
-            XU = XU[:, :-1]
-        XU, Y, labels = self._transform_impl(XU, Y, labels)
-        if self.strip_affine:
-            XU = torch.cat((XU, XU[:, -1].view(-1, 1)), dim=1)
-        return load_data.SimpleDataset(XU, Y, labels)
+    def transform(self, XU, Y, labels=None):
+        # apply transformation and return transformed copies of data
+        return self.transform_x(XU), self.transform_y(Y), labels
 
     def update_data_config(self, config: load_data.DataConfig):
         """Change the dimensions of the data's configuration to match what the preprocessing will do"""
@@ -62,12 +50,8 @@ class Preprocess(abc.ABC):
     def _fit_impl(self, XU, Y, labels):
         """Fit internal state to training set"""
 
-    def _transform_impl(self, XU, Y, labels):
-        # apply transformation and return transformed copies of data
-        return self.transform_x(XU), self.transform_y(Y), labels
 
-
-class NoTransform(Preprocess):
+class NoTransform(Transformer):
     def transform_x(self, XU):
         return XU
 
@@ -96,7 +80,7 @@ class PolynomialState(NoTransform):
         return torch.from_numpy(p)
 
 
-class SklearnPreprocessing(Preprocess):
+class SklearnTransformer(Transformer):
     def __init__(self, method, methodY=None, **kwargs):
         super().__init__(**kwargs)
         self.method = method
@@ -134,7 +118,7 @@ class SingleTransformer:
         """The inverse transformation"""
 
 
-class PytorchPreprocessing(Preprocess):
+class PytorchTransformer(Transformer):
     def __init__(self, method: SingleTransformer, methodY=None, **kwargs):
         super().__init__(**kwargs)
         self.method = method
@@ -194,3 +178,37 @@ class StandardScaler(SingleTransformer):
 
     def inverse_transform(self, X):
         return (X * self._s) + self._m
+
+
+class DatasetPreprocessor(abc.ABC):
+    """Pre-process the entire dataset
+    with a transformation fitted on the training set and applied to both training and validation set.
+    Assumes the dataset is from a dynamical system (X,U,Y,labels)
+    """
+
+    def __init__(self, transformer: Transformer):
+        self.tsf = transformer
+
+    def fit(self, dataset):
+        if self.tsf.fitted:
+            logger.warning("Ignoring attempt to refit preprocessor")
+            return
+        XU, Y, labels = load_data.get_all_data_from_dataset(dataset)
+        self.tsf.fit(XU, Y, labels)
+
+    def transform(self, dataset):
+        XU, Y, labels = load_data.get_all_data_from_dataset(dataset)
+        XU, Y, labels = self.tsf.transform(XU, Y, labels)
+        return load_data.SimpleDataset(XU, Y, labels)
+
+    def update_data_config(self, config: load_data.DataConfig):
+        return self.tsf.update_data_config(config)
+
+    def transform_x(self, XU):
+        return self.tsf.transform_x(XU)
+
+    def transform_y(self, Y):
+        return self.tsf.transform_y(Y)
+
+    def invert_transform(self, Y, X=None):
+        return self.tsf.invert_transform(Y, X)
