@@ -157,6 +157,10 @@ class SingleTransformer:
     def inverse_transform(self, X):
         """The inverse transformation"""
 
+    def data_dim_change(self):
+        """How this transform changed the dimension of the data"""
+        return 0
+
 
 class NullSingleTransformer(SingleTransformer):
     def fit(self, X):
@@ -187,6 +191,10 @@ class PytorchTransformer(Transformer):
 
     def invert_transform(self, Y, X=None):
         return self.methodY.inverse_transform(Y)
+
+    def update_data_config(self, config: load_data.DataConfig):
+        config.n_input = config.input_dim() + self.method.data_dim_change()
+        config.ny = config.ny + self.methodY.data_dim_change()
 
 
 class MinMaxScaler(SingleTransformer):
@@ -254,6 +262,9 @@ class AngleToCosSinRepresentation(SingleTransformer):
         c = X[:, self.angle_index + 1]
         theta = torch.atan2(s, c)
         return torch.cat((X[:, :self.angle_index], theta.view(-1, 1), X[:, self.angle_index + 2:]), dim=1)
+
+    def data_dim_change(self):
+        return 1
 
 
 class DatasetPreprocessor(abc.ABC):
