@@ -59,6 +59,12 @@ class Compose(Transformer):
         self.transforms = transforms
         super(Compose, self).__init__()
 
+    def transform(self, XU, Y, labels=None):
+        # need to override this because held transforms could override these
+        for t in self.transforms:
+            XU, Y, labels = t.transform(XU, Y, labels)
+        return XU, Y, labels
+
     def _fit_impl(self, XU, Y, labels):
         for t in self.transforms:
             t._fit_impl(XU, Y, labels)
