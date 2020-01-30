@@ -1,4 +1,5 @@
 import abc
+import copy
 from typing import Type
 
 import torch
@@ -83,10 +84,19 @@ class FileDataSource(DataSource):
         return self._val_unprocessed
 
     def update_preprocessor(self, preprocessor):
-        """Change the preprocessor, which involves remaking the data"""
+        """Change the preprocessor,
+        which involves remaking the data and potentially changing the meaning/config of the data.
+        If you need the loaded untransformed config (for example for doing control in that space), then you should
+        not pass the preprocessor in the constructor, but instead call this function with it afterwards.
+
+        :param preprocessor:
+        :return: pre-transformation data configuration copy
+        """
+        untransformed_config = copy.deepcopy(self.config)
         self.preprocessor = preprocess.DatasetPreprocessor(preprocessor) if \
             isinstance(preprocessor, preprocess.Transformer) else preprocessor
         self.make_data()
+        return untransformed_config
 
     def data_id(self):
         """String identification for this data"""
