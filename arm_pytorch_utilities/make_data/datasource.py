@@ -23,6 +23,7 @@ class DataSource:
         """
         self.N = N
         self.config = config
+        self._original_config = None
 
         self.d = torch.device(device)
 
@@ -46,6 +47,12 @@ class DataSource:
         """String identification for this data"""
         return "N_{}".format(str_utils.f2s(self.N))
 
+    def original_config(self):
+        return self.config if self._original_config is None else self._original_config
+
+    def current_config(self):
+        return self.config
+
     def update_preprocessor(self, preprocessor):
         """Change the preprocessor,
         which involves remaking the data and potentially changing the meaning/config of the data.
@@ -53,13 +60,16 @@ class DataSource:
         not pass the preprocessor in the constructor, but instead call this function with it afterwards.
 
         :param preprocessor:
-        :return: pre-transformation data configuration copy
+        :return: original data configuration (before *any* transformation, even if this is not the first transform)
         """
-        untransformed_config = copy.deepcopy(self.config)
+        # the first time we're updating the preprocessor and the original data has been loaded
+        if self._original_config is None and self.config.nx is not None:
+            self._original_config = copy.deepcopy(self.config)
+
         self.preprocessor = preprocess.DatasetPreprocessor(preprocessor) if \
             isinstance(preprocessor, preprocess.Transformer) else preprocessor
         self.make_data()
-        return untransformed_config
+        return self.original_config()
 
 
 class FileDataSource(DataSource):
