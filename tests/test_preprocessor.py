@@ -1,4 +1,5 @@
 from arm_pytorch_utilities import preprocess
+from arm_pytorch_utilities import math_utils
 import torch
 
 
@@ -30,7 +31,7 @@ def verify_scaler_tsf(x, y, tsf, scale=1.):
     v, _ = yy.max(0)
     assert torch.allclose(v, torch.ones(ny) * scale)
     yyy = tsf.invert_transform(yy, x)
-    assert torch.allclose(y, yyy, atol=1e-7)
+    assert torch.allclose(y, yyy, atol=1e-6)
 
 
 def test_preprocess_compose():
@@ -62,6 +63,31 @@ def test_min_max_scaler():
     verify_scaler_tsf(x, y, tsf)
 
 
+def test_angle_to_cos_sin():
+    N = 100
+    nx = 3
+    for angle_index in range(nx):
+        x = torch.randn((N, nx))
+        tsf = preprocess.AngleToCosSinRepresentation(angle_index)
+        tsf.fit(x)
+        xx = tsf.transform(x)
+
+        # doesn't touch the other data
+        assert torch.allclose(x[:, :angle_index], xx[:, :angle_index])
+        assert torch.allclose(x[:, angle_index + 1:], xx[:, angle_index + 2:])
+        # is sine and cosine of angle
+        assert torch.allclose(torch.sin(x[:, angle_index]), xx[:, angle_index])
+        assert torch.allclose(torch.cos(x[:, angle_index]), xx[:, angle_index + 1])
+        # converts back ok
+        xxx = tsf.inverse_transform(xx)
+        assert torch.allclose(x[:, :angle_index], xxx[:, :angle_index])
+        assert torch.allclose(x[:, angle_index + 1:], xxx[:, angle_index + 1:])
+        assert torch.allclose(
+            math_utils.angular_diff_batch(x[:, angle_index], xxx[:, angle_index]),
+            torch.zeros_like(x[:, angle_index]), atol=1e-6)
+
+
 if __name__ == "__main__":
     test_min_max_scaler()
     test_preprocess_compose()
+    test_angle_to_cos_sin()

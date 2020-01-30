@@ -231,6 +231,31 @@ class StandardScaler(SingleTransformer):
         return (X * self._s) + self._m
 
 
+class AngleToCosSinRepresentation(SingleTransformer):
+    """
+    Continuous representation of an angle which allows better approximation by neural networks
+    """
+
+    def __init__(self, angle_index):
+        # this transform only handles 1 location; for more locations compose them together
+        assert type(angle_index) is int
+        self.angle_index = angle_index
+
+    def fit(self, X):
+        assert self.angle_index < X.shape[1]
+
+    def transform(self, X):
+        s = torch.sin(X[:, self.angle_index]).view(-1, 1)
+        c = torch.cos(X[:, self.angle_index]).view(-1, 1)
+        return torch.cat((X[:, :self.angle_index], s, c, X[:, self.angle_index + 1:]), dim=1)
+
+    def inverse_transform(self, X):
+        s = X[:, self.angle_index]
+        c = X[:, self.angle_index + 1]
+        theta = torch.atan2(s, c)
+        return torch.cat((X[:, :self.angle_index], theta.view(-1, 1), X[:, self.angle_index + 2:]), dim=1)
+
+
 class DatasetPreprocessor(abc.ABC):
     """Wrapper around Transformer for datasets
     with a transformation fitted on the training set and applied to both training and validation set.
