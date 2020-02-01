@@ -99,8 +99,9 @@ class FileDataSource(DataSource):
         if self.preprocessor:
             self.preprocessor.fit(train_set)
             self.preprocessor.update_data_config(self.config)
-            # save old data
-            self._val_unprocessed = load_data.get_all_data_from_dataset(validation_set)
+            # save old data (if it's for the first time we're using a preprocessor)
+            if self._val_unprocessed is None:
+                self._val_unprocessed = load_data.get_all_data_from_dataset(validation_set)
             # apply on training and validation set
             train_set = self.preprocessor.transform(train_set)
             validation_set = self.preprocessor.transform(validation_set)
@@ -109,7 +110,7 @@ class FileDataSource(DataSource):
         self._val = load_data.get_all_data_from_dataset(validation_set)
 
     def unprocessed_validation_set(self):
-        return self._val_unprocessed
+        return self._val if self._val_unprocessed is None else self._val_unprocessed
 
     def data_id(self):
         """String identification for this data"""
