@@ -13,5 +13,8 @@ setup(
         'torch',
         'numpy',
         'matplotlib', 'scipy'
+    ],
+    tests_require=[
+        'pytest'
     ]
 )

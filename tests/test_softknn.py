@@ -14,9 +14,9 @@ logging.basicConfig(level=logging.INFO,
 
 # generate ground truth transforms and operations
 # converts it to a transformed space
-class TestNet(torch.nn.Module):
+class SimpleNet(torch.nn.Module):
     def __init__(self, D_in, H):
-        super(TestNet, self).__init__()
+        super(SimpleNet, self).__init__()
         self.linear1 = torch.nn.Linear(D_in, H, bias=False)
         self.knn = softknn.SoftKNN(min_k=20)
 
@@ -95,7 +95,7 @@ def test_softknn(debug=False):
 
     criterion = torch.nn.MSELoss(reduction='sum')
 
-    model = TestNet(D_in, D_out)
+    model = SimpleNet(D_in, D_out)
     optimizer = torch.optim.SGD(model.parameters(), lr=1e-4)
 
     losses = []

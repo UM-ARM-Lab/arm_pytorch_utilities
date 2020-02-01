@@ -7,6 +7,7 @@ Install in editable mode with `python3 -m pip install -e .` so that modification
 in the repository are automatically synced with the installed library
 
 ## Testing
+Install `pytest` if you don't have it, then run
 ```
-python3 -m pytest
+py.test
 ```
