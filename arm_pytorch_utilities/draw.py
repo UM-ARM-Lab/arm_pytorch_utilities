@@ -164,3 +164,28 @@ def plot_prediction(learned_model, X, Y, labels, axis_name, title, output_offset
     f2.legend('')
 
     f2.suptitle(title)
+
+
+def cumulative_dist(series, labels, xlabel):
+    """
+    Plot the empirical CDF of some series
+
+    :param series: Iterable of 1D tensors (or a 2D tensor with each row being a series)
+    :param labels: Names for each of the series (iterable of strings)
+    :param xlabel: Name for the value the series are over
+    :return: figure
+    """
+    assert len(series) is len(labels)
+    f = plt.figure()
+    for label, x in zip(labels, series):
+        assert len(x.shape) is 1
+        x = torch.cat((torch.zeros(1, dtype=x.dtype, device=x.device), x))
+        N = x.shape[0]
+        cumulative_ratio = np.linspace(0, 1, N)
+        x, _ = torch.sort(x)
+        plt.step(x.cpu().numpy(), cumulative_ratio, where='post', label=label)
+    plt.xlabel(xlabel)
+    plt.ylabel('cumulative ratio')
+    plt.ylim(0, 1)
+    plt.legend()
+    return f
