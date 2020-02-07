@@ -29,6 +29,8 @@ class DataSource:
 
         self._train = None
         self._val = None
+        # data before preprocessing; set only if we have a preprocessor
+        self._original_val = None
 
         self.preprocessor = None  # implementation should use preprocessor in make_data
         self.update_preprocessor(preprocessor)
@@ -38,6 +40,9 @@ class DataSource:
 
     def validation_set(self):
         return self._val
+
+    def original_validation_set(self):
+        return self._val if self._original_val is None else self._original_val
 
     @abc.abstractmethod
     def make_data(self):
@@ -84,8 +89,6 @@ class FileDataSource(DataSource):
         self.loader = loader
         self._data_dir = data_dir
         self._validation_ratio = validation_ratio
-        # data before preprocessing; set only if we have a preprocessor
-        self._original_val = None
         super().__init__(**kwargs)
 
     def make_data(self):
@@ -108,9 +111,6 @@ class FileDataSource(DataSource):
 
         self._train = load_data.get_all_data_from_dataset(train_set)
         self._val = load_data.get_all_data_from_dataset(validation_set)
-
-    def original_validation_set(self):
-        return self._val if self._original_val is None else self._original_val
 
     def data_id(self):
         """String identification for this data"""
