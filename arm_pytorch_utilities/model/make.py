@@ -42,7 +42,8 @@ def make_sequential_network(config: DataConfig, end_block_factory=make_linear_en
     output_dim = config.ny
 
     layers = make_fully_connected_layers(input_dim=input_dim, h_units=h_units, **kwargs)
-    layers.append(end_block_factory(h_units[-1], output_dim))
+    end_block_input = h_units[-1] if len(h_units) else input_dim
+    layers.append(end_block_factory(end_block_input, output_dim))
 
     network = torch.nn.Sequential(*layers).double()
     return network
