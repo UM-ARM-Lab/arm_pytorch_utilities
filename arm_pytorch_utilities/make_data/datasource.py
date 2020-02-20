@@ -13,7 +13,7 @@ class DataSource:
     Source of data, agnostic to its creation method; public API for data
     """
 
-    def __init__(self, N=None, config=load_data.DataConfig(), preprocessor: preprocess.Transformer = None,
+    def __init__(self, max_N=None, config=load_data.DataConfig(), preprocessor: preprocess.Transformer = None,
                  device="cpu"):
         """
         :param N: number of data points for this data source; set to None for unknown/loaded
@@ -21,7 +21,8 @@ class DataSource:
         :param preprocessor: data transformer/preprocessor, such as StandardizeVariance
         :param device:
         """
-        self.N = N
+        self.max_N = max_N
+        self.N = max_N
         self.config = config
         self._original_config = None
 
@@ -92,7 +93,7 @@ class FileDataSource(DataSource):
         super().__init__(**kwargs)
 
     def make_data(self):
-        full_set = load_data.LoaderXUYDataset(loader=self.loader, dirs=self._data_dir, max_num=self.N,
+        full_set = load_data.LoaderXUYDataset(loader=self.loader, dirs=self._data_dir, max_num=self.max_N,
                                               config=self.config, device=self.d)
         train_set, validation_set = load_data.split_train_validation(full_set,
                                                                      validation_ratio=self._validation_ratio)
