@@ -271,6 +271,8 @@ def merge_data_in_dir(config, dir, out_filename, sort=True):
 
 
 def get_all_data_from_dataset(dataset):
+    if not len(dataset):
+        return None, None, None
     x0, y0, ls = dataset[0]
     XU = x0.new_zeros((len(dataset), x0.shape[0]))
     Y = x0.new_zeros((len(dataset), y0.shape[0]))

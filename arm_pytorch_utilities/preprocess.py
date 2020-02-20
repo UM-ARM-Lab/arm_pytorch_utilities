@@ -297,8 +297,10 @@ class DatasetPreprocessor(abc.ABC):
         self.tsf.fit(XU, Y, labels)
 
     def transform(self, dataset):
-        XU, Y, labels = load_data.get_all_data_from_dataset(dataset)
-        XU, Y, labels = self.tsf.transform(XU, Y, labels)
+        if len(dataset):
+            XU, Y, labels = self.tsf.transform(*load_data.get_all_data_from_dataset(dataset))
+        else:
+            XU, Y, labels = [], [], []
         return load_data.SimpleDataset(XU, Y, labels)
 
     def update_data_config(self, config: load_data.DataConfig):
