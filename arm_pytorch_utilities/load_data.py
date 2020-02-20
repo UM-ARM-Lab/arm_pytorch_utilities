@@ -233,9 +233,9 @@ class LoaderXUYDataset(torch.utils.data.Dataset):
         super().__init__()
 
     def _convert_types(self, device):
-        self.XU = torch.from_numpy(self.XU).double().to(device=device)
-        self.Y = torch.from_numpy(self.Y).double().to(device=device)
-        self.labels = torch.from_numpy(self.labels).byte().to(device=device)
+        self.XU = torch.from_numpy(self.XU).to(device=device, dtype=torch.double)
+        self.Y = torch.from_numpy(self.Y).to(device=device, dtype=torch.double)
+        self.labels = torch.from_numpy(self.labels).to(device=device, dtype=torch.double)
 
     def __len__(self):
         return self.XU.shape[0]
@@ -274,7 +274,7 @@ def get_all_data_from_dataset(dataset):
     x0, y0, ls = dataset[0]
     XU = x0.new_zeros((len(dataset), x0.shape[0]))
     Y = x0.new_zeros((len(dataset), y0.shape[0]))
-    labels = torch.zeros(len(dataset), dtype=ls.dtype, device=x0.device)
+    labels = ls.new_zeros((len(dataset), ls.shape[0]))
     for i, data in enumerate(dataset, 0):
         xu, y, ls = data
         XU[i] = xu
