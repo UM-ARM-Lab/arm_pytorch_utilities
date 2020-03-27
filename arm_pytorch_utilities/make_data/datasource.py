@@ -113,6 +113,10 @@ class FileDataSource(DataSource):
         self._train = load_data.get_all_data_from_dataset(train_set)
         self._val = load_data.get_all_data_from_dataset(validation_set)
 
+    def restrict_training_set_to_slice(self, restricted_slice):
+        if self._train is not None:
+            self._train = tuple(v[restricted_slice] for v in self._train)
+
     def data_id(self):
         """String identification for this data"""
         return "{}_N_{}_{}".format(self._data_dir, str_utils.f2s(self.N), self.config)
