@@ -31,19 +31,20 @@ class DataSource:
         self._train = None
         self._val = None
         # data before preprocessing; set only if we have a preprocessor
+        self._original_train = None
         self._original_val = None
 
         self.preprocessor = None  # implementation should use preprocessor in make_data
         self.update_preprocessor(preprocessor)
 
-    def training_set(self):
-        return self._train
+    def training_set(self, original=False):
+        return self._original_train if original and self._original_train else self._train
 
-    def validation_set(self):
-        return self._val
+    def validation_set(self, original=False):
+        return self._original_val if original and self._original_val else self._val
 
     def original_validation_set(self):
-        return self._val if self._original_val is None else self._original_val
+        return self.validation_set(original=True)
 
     @abc.abstractmethod
     def make_data(self):
@@ -105,13 +106,14 @@ class FileDataSource(DataSource):
             self.preprocessor.update_data_config(self.config)
             # save old data (if it's for the first time we're using a preprocessor)
             if self._original_val is None:
-                self._original_val = load_data.get_all_data_from_dataset(validation_set)
+                self._original_train = train_set[:]
+                self._original_val = validation_set[:]
             # apply on training and validation set
             train_set = self.preprocessor.transform(train_set)
             validation_set = self.preprocessor.transform(validation_set)
 
-        self._train = load_data.get_all_data_from_dataset(train_set)
-        self._val = load_data.get_all_data_from_dataset(validation_set)
+        self._train = train_set[:]
+        self._val = validation_set[:]
 
     def restrict_training_set_to_slice(self, restricted_slice):
         if self._train is not None:

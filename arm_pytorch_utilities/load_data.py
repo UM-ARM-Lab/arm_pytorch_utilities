@@ -5,7 +5,7 @@ from typing import Type
 import numpy as np
 import scipy.io
 import torch
-import torch.utils.data
+import torch.utils.data as data
 
 
 class DataConfig:
@@ -128,7 +128,7 @@ def make_affine(X):
     return torch.cat((X, torch.ones((N, 1), dtype=X.dtype)), dim=1)
 
 
-class RandomNumberDataset(torch.utils.data.Dataset):
+class RandomNumberDataset(data.Dataset):
     def __init__(self, produce_output, num=1000, low=-1, high=1, input_dim=1):
         r = high - low
         self.x = torch.rand((num, input_dim)) * r / 2 + (low + high) / 2
@@ -148,7 +148,7 @@ class RandomNumberDataset(torch.utils.data.Dataset):
         return self.y
 
 
-class SimpleXUYDataset(torch.utils.data.Dataset):
+class SimpleXUYDataset(data.Dataset):
     def __init__(self, XU, Y):
         self.XU = XU
         self.Y = Y
@@ -161,7 +161,7 @@ class SimpleXUYDataset(torch.utils.data.Dataset):
         return self.XU[idx], self.Y[idx]
 
 
-class SimpleDataset(torch.utils.data.Dataset):
+class SimpleDataset(data.Dataset):
     def __init__(self, *sequences):
         self.sequences = sequences
 
@@ -179,27 +179,7 @@ class IndexedDataset(SimpleDataset):
         return tuple(sequence[idx] if sequence is not None else [] for sequence in self.sequences) + (idx,)
 
 
-class PartialViewDataset(torch.utils.data.Dataset):
-    """Get a slice of a full dataset (for example to split training and validation set)
-    taken from https://discuss.pytorch.org/t/best-way-training-data-in-pytorch/6855/2"""
-
-    def __init__(self, full_data, offset, length):
-        self.data = full_data
-        self.offset = offset
-        self.length = length
-        assert len(full_data) >= offset + length, Exception("View of dataset goes outside full dataset")
-        super(PartialViewDataset, self).__init__()
-
-    def __len__(self):
-        return self.length
-
-    def __getitem__(self, idx):
-        if idx >= self.length:
-            raise StopIteration()
-        return self.data[idx + self.offset]
-
-
-class LoaderXUYDataset(torch.utils.data.Dataset):
+class LoaderXUYDataset(data.Dataset):
     def __init__(self, loader: Type[DataLoader], dirs=('raw',), filter_on_labels=None, max_num=None,
                  config=DataConfig(), device="cpu"):
         if type(dirs) is str:
@@ -247,7 +227,7 @@ class LoaderXUYDataset(torch.utils.data.Dataset):
 def split_train_validation(dataset, validation_ratio=0.1):
     # consider giving a shuffle (with np.random.shuffle()) option to permute the data before viewing
     offset = int(len(dataset) * (1 - validation_ratio))
-    return PartialViewDataset(dataset, 0, offset), PartialViewDataset(dataset, offset, len(dataset) - offset)
+    return data.Subset(dataset, range(0, offset)), data.Subset(dataset, range(offset, len(dataset)))
 
 
 def merge_data_in_dir(config, dir, out_filename, sort=True):
@@ -268,18 +248,3 @@ def merge_data_in_dir(config, dir, out_filename, sort=True):
                 data[key] = np.row_stack((data[key], raw_data[key]))
     merged_filename = '{}/{}.mat'.format(config.DATA_DIR, out_filename)
     scipy.io.savemat(merged_filename, data)
-
-
-def get_all_data_from_dataset(dataset):
-    if not len(dataset):
-        return None, None, None
-    x0, y0, ls = dataset[0]
-    XU = x0.new_zeros((len(dataset), x0.shape[0]))
-    Y = x0.new_zeros((len(dataset), y0.shape[0]))
-    labels = ls.new_zeros((len(dataset), ls.shape[0]))
-    for i, data in enumerate(dataset, 0):
-        xu, y, ls = data
-        XU[i] = xu
-        Y[i] = y
-        labels[i] = ls
-    return XU, Y, labels

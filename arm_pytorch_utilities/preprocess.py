@@ -293,12 +293,12 @@ class DatasetPreprocessor(abc.ABC):
         if self.tsf.fitted:
             logger.warning("Ignoring attempt to refit preprocessor")
             return
-        XU, Y, labels = load_data.get_all_data_from_dataset(dataset)
+        XU, Y, labels = dataset[:]
         self.tsf.fit(XU, Y, labels)
 
     def transform(self, dataset):
         if len(dataset):
-            XU, Y, labels = self.tsf.transform(*load_data.get_all_data_from_dataset(dataset))
+            XU, Y, labels = self.tsf.transform(*dataset[:])
         else:
             XU, Y, labels = [], [], []
         return load_data.SimpleDataset(XU, Y, labels)
