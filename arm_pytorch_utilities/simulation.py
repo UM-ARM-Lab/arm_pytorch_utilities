@@ -45,7 +45,7 @@ class Simulation(abc.ABC):
         # per run state variables
         self.randseed = None
 
-    def run(self, randseed=None):
+    def run(self, randseed=None, run_name=None):
         random.seed(time.time())
         if randseed is None:
             randseed = random.randint(0, 1000000)
@@ -77,15 +77,13 @@ class Simulation(abc.ABC):
         if self.save:
             if not os.path.exists(self.save_dir):
                 os.makedirs(self.save_dir)
-            save_to = os.path.join(self.save_dir, '{}.mat'.format(self._get_run_name(randseed)))
+            run_name = run_name if run_name is not None else randseed
+            save_to = os.path.join(self.save_dir, '{}.mat'.format(run_name))
             # export in matlab/numpy compatible format
             scipy.io.savemat(save_to, mdict=self._export_data_dict())
             logger.info("Finished saving to {}".format(save_to))
 
         return ReturnMeaning.SUCCESS
-
-    def _get_run_name(self, randseed):
-        return randseed
 
     @abc.abstractmethod
     def _configure_physics_engine(self):
@@ -128,7 +126,6 @@ class PyBulletSim(Simulation):
         # use data provided by PyBullet
         p.setAdditionalSearchPath(pybullet_data.getDataPath())  # optionally
 
-        # TODO not sure if I have to set timestep also for real time simulation; I think not
         if self.realtime:
             p.setRealTimeSimulation(True)
         else:
@@ -136,8 +133,8 @@ class PyBulletSim(Simulation):
 
         return ReturnMeaning.SUCCESS
 
-    def run(self, randseed=None):
+    def run(self, randseed=None, run_name=None):
         # make sure to always disconnect after running
-        ret = super(PyBulletSim, self).run(randseed)
+        ret = super(PyBulletSim, self).run(randseed, run_name)
         p.disconnect(self.physics_client)
         return ret
