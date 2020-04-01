@@ -28,6 +28,9 @@ class LearnableParameterizedModel:
     def device(self):
         return next(self.parameters()).device
 
+    def dtype(self):
+        return next(self.parameters()).dtype
+
     @abc.abstractmethod
     def _model_state_dict(self):
         """
