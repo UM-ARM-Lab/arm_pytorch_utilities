@@ -80,7 +80,7 @@ class DataSource:
 
 
 class FileDataSource(DataSource):
-    def __init__(self, loader: Type[load_data.DataLoader], data_dir, validation_ratio=0.2, **kwargs):
+    def __init__(self, loader: load_data.DataLoader, data_dir, validation_ratio=0.2, **kwargs):
         """
         :param loader: data loader specializing to what's stored in each file
         :param data_dir: data directory or list of directories

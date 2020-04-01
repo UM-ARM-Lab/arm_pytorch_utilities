@@ -78,13 +78,11 @@ class DataLoader(abc.ABC):
     Each dataset should subclass DataLoader and specialize process file raw data to saved content.
     """
 
-    def __init__(self, file_cfg=None, dir_to_load=None, config=DataConfig()):
-        if file_cfg is None or dir_to_load is None:
+    def __init__(self, file_cfg=None, config=DataConfig()):
+        if file_cfg is None:
             raise RuntimeError("Incomplete specification of DataLoader")
-        self.dir = dir_to_load
-        self.data = None
-        self.config = config
         self.file_cfg = file_cfg
+        self.config = config
 
     @abc.abstractmethod
     def _process_file_raw_data(self, d):
@@ -94,21 +92,24 @@ class DataLoader(abc.ABC):
         :return: tuple of data sequence
         """
 
-    def load_file(self, full_filename):
+    def load_file(self, full_filename, data):
         raw_data = scipy.io.loadmat(full_filename)
         file_data = self._process_file_raw_data(raw_data)
-        if self.data is None:
-            self.data = list(file_data)
+        if data is None:
+            data = list(file_data)
         else:
-            for i in range(len(self.data)):
-                self.data[i] = np.row_stack((self.data[i], file_data[i]))
-        return self.data
+            for i in range(len(data)):
+                data[i] = np.row_stack((data[i], file_data[i]))
+        return data
 
-    def load(self):
-        full_dir = os.path.join(self.file_cfg.DATA_DIR, self.dir)
+    def load(self, dir, override_config=None):
+        if override_config:
+            self.config = override_config
+        data = None
+        full_dir = os.path.join(self.file_cfg.DATA_DIR, dir)
 
         if os.path.isfile(full_dir):
-            self.load_file(full_dir)
+            data = self.load_file(full_dir, data)
         else:
             files = os.listdir(full_dir)
             # consistent with the way MATLAB loads files
@@ -119,8 +120,8 @@ class DataLoader(abc.ABC):
                 full_filename = '{}/{}'.format(full_dir, file)
                 if os.path.isdir(full_filename):
                     continue
-                self.load_file(full_filename)
-        return self.data
+                data = self.load_file(full_filename, data)
+        return data
 
 
 def make_affine(X):
@@ -180,7 +181,7 @@ class IndexedDataset(SimpleDataset):
 
 
 class LoaderXUYDataset(data.Dataset):
-    def __init__(self, loader: Type[DataLoader], dirs=('raw',), filter_on_labels=None, max_num=None,
+    def __init__(self, loader: DataLoader, dirs=('raw',), filter_on_labels=None, max_num=None,
                  config=DataConfig(), device="cpu"):
         if type(dirs) is str:
             dirs = [dirs]
@@ -188,8 +189,7 @@ class LoaderXUYDataset(data.Dataset):
         self.Y = None
         self.labels = None
         for dir in dirs:
-            dl = loader(dir_to_load=dir, config=config)
-            XU, Y, labels = dl.load()
+            XU, Y, labels = loader.load(dir, config)
             if self.XU is None:
                 self.XU = XU
                 self.Y = Y
