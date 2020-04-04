@@ -1,4 +1,19 @@
 import torch
+import functools
+import numpy as np
+
+
+def is_tensor_like(x):
+    return torch.is_tensor(x) or type(x) is np.ndarray
+
+
+def ensure_2d_input(func):
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        args = [v.reshape(1, -1) if (is_tensor_like(v) and len(v.shape) is 1) else v for v in args]
+        return func(*args, **kwargs)
+
+    return wrapper
 
 
 def ensure_tensor(device, dtype, *args):
