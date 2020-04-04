@@ -197,7 +197,7 @@ class LoaderXUYDataset(data.Dataset):
             else:
                 self.XU = np.row_stack((self.XU, XU))
                 self.Y = np.row_stack((self.Y, Y))
-                self.labels = np.row_stack((self.labels, labels))
+                self.labels = np.row_stack((self.labels, labels[:, :self.labels.shape[1]]))
         self._convert_types(device)
         if filter_on_labels:
             self.XU, self.Y, self.labels = filter_on_labels(self.XU, self.Y, self.labels)
