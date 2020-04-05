@@ -300,7 +300,7 @@ class DatasetPreprocessor(abc.ABC):
         if len(dataset):
             XU, Y, labels = self.tsf.transform(*dataset[:])
         else:
-            XU, Y, labels = [], [], []
+            XU, Y, labels = (torch.tensor([], device=series.device) for series in dataset[:])
         return load_data.SimpleDataset(XU, Y, labels)
 
     def update_data_config(self, config: load_data.DataConfig):
