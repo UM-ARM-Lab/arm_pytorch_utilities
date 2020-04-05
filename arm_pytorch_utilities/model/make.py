@@ -25,8 +25,8 @@ def make_mdn_end_block(num_components=4):
 def make_linear_end_block(bias=True, activation=None):
     def make_block(fc_output_dim, output_dim):
         layers = [torch.nn.Linear(fc_output_dim, output_dim, bias=bias)]
-        if activation:
-            layers.append(activation())
+        if activation is not None:
+            layers.append(activation)
         return torch.nn.Sequential(*layers).double()
 
     return make_block
