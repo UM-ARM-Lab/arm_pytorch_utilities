@@ -16,6 +16,39 @@ def ensure_2d_input(func):
     return wrapper
 
 
+def handle_batch_input(func):
+    """For func that expect 2D input, handle input that have more than 2 dimensions by flattening them temporarily"""
+
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        # assume inputs that are tensor-like have compatible shapes and is represented by the first argument
+        batch_dims = []
+        for arg in args:
+            if is_tensor_like(arg) and len(arg.shape) > 2:
+                batch_dims = arg.shape[:-1]  # last dimension is type dependent; all previous ones are batches
+                break
+        # no batches; just return normally
+        if not batch_dims:
+            return func(*args, **kwargs)
+
+        # reduce all batch dimensions down to the first one
+        args = [v.view(-1, v.shape[-1]) if (is_tensor_like(v) and len(v.shape) > 2) else v for v in args]
+        ret = func(*args, **kwargs)
+        # restore original batch dimensions; keep variable dimension (nx)
+        if type(ret) is tuple:
+            ret = [v if not is_tensor_like(v) else (
+                v.view(*batch_dims, v.shape[-1]) if len(v.shape) == 2 else v.view(*batch_dims)) for v in ret]
+        else:
+            if is_tensor_like(ret):
+                if len(ret.shape) == 2:
+                    ret = ret.view(*batch_dims, ret.shape[-1])
+                else:
+                    ret = ret.view(*batch_dims)
+        return ret
+
+    return wrapper
+
+
 def ensure_tensor(device, dtype, *args):
     tensors = tuple(torch.tensor(x, device=device, dtype=dtype) for x in args)
     return tensors if len(tensors) > 1 else tensors[0]
