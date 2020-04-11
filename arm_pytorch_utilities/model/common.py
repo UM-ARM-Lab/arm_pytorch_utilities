@@ -1,6 +1,7 @@
 import abc
 import logging
 import os
+import itertools
 
 import torch
 from arm_pytorch_utilities import array_utils
@@ -9,21 +10,26 @@ from arm_pytorch_utilities.optim import Lookahead
 logger = logging.getLogger(__name__)
 
 
+# TODO make subclass of nn.Module?
 class LearnableParameterizedModel:
     def __init__(self, save_root_dir, name='', lookahead=False):
         self.save_root_dir = save_root_dir
-        self.optimizer = None
         self.step = 0
         self.name = name
-        self.optimizer = torch.optim.Adam(self.parameters())
+        params = self.parameters()
+        self.optimizer = torch.optim.Adam(params if len(params) else [torch.zeros(1)])
         if lookahead:
             self.optimizer = Lookahead(self.optimizer)
 
-    @abc.abstractmethod
+    def modules(self):
+        """PyTorch compatible modules that make it convenient to define the other methods"""
+        return {}
+
     def parameters(self):
         """
         :return: Iterable holding this transform's parameters
         """
+        return list(itertools.chain.from_iterable(module.parameters() for module in self.modules().values()))
 
     def device(self):
         return next(self.parameters()).device
@@ -31,25 +37,32 @@ class LearnableParameterizedModel:
     def dtype(self):
         return next(self.parameters()).dtype
 
-    @abc.abstractmethod
     def _model_state_dict(self):
         """
         :return: State dictionary of the model to save
         """
+        return {key: module.state_dict() for key, module in self.modules().items()}
 
-    @abc.abstractmethod
     def _load_model_state_dict(self, saved_state_dict):
         """
         Load saved state dictionary
         :param saved_state_dict: what _model_state_dict returns
         :return:
         """
+        modules = self.modules()
+        try:
+            for key, module in modules.items():
+                module.load_state_dict(saved_state_dict[key])
+        except KeyError as e:
+            logger.error("Abort loading due to %s", e)
+            return False
+        return True
 
-    def freeze(self):
+    def eval(self):
         for param in self.parameters():
             param.requires_grad = False
 
-    def unfreeze(self):
+    def train(self):
         for param in self.parameters():
             param.requires_grad = True
 
@@ -97,7 +110,8 @@ class LearnableParameterizedModel:
             return False
         checkpoint = torch.load(filename)
         self.step = checkpoint['step']
-        self._load_model_state_dict(checkpoint['state_dict'])
+        if not self._load_model_state_dict(checkpoint['state_dict']):
+            return False
         self.optimizer.load_state_dict(checkpoint['optimizer'])
         logger.info("loaded checkpoint at step %d for %s", self.step, self.name)
         return True
