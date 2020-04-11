@@ -1,4 +1,3 @@
-import abc
 import logging
 import os
 import itertools
@@ -66,7 +65,7 @@ class LearnableParameterizedModel:
         for param in self.parameters():
             param.requires_grad = True
 
-    def get_last_checkpoint(self):
+    def get_last_checkpoint(self, sort_by_time=True):
         """
         Get the last checkpoint for a model matching this one's name (with the highest number of training steps)
         :return: either '' or the filename of the last checkpoint
@@ -77,9 +76,14 @@ class LearnableParameterizedModel:
         checkpoints = [filename for filename in os.listdir(base_dir) if filename.startswith(self.name + '.')]
         if not checkpoints:
             return ''
-        # order by step
-        array_utils.sort_nicely(checkpoints)
-        return os.path.join(base_dir, checkpoints[-1])
+        if sort_by_time:
+            checkpoints = [os.path.join(base_dir, filename) for filename in checkpoints]
+            checkpoints.sort(key=os.path.getmtime)
+            return checkpoints[-1]
+        else:
+            # order by name
+            array_utils.sort_nicely(checkpoints)
+            return os.path.join(base_dir, checkpoints[-1])
 
     def save(self, last=False):
         """
