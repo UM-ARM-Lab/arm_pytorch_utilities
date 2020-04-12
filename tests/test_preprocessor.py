@@ -62,6 +62,20 @@ def test_min_max_scaler():
     tsf = preprocess.PytorchTransformer(preprocess.MinMaxScaler())
     verify_scaler_tsf(x, y, tsf)
 
+    tsf = preprocess.PytorchTransformer(preprocess.MinMaxScaler(feature_range=[[0, 0], [2, 3]]))
+    tsf.fit(x, y)
+    xx, yy, _ = tsf.transform(x, y)
+    v, _ = xx.min(0)
+    assert torch.allclose(v, torch.zeros(nx))
+    v, _ = xx.max(0)
+    assert torch.allclose(v, torch.tensor([2., 3., 1.]))
+    v, _ = yy.min(0)
+    assert torch.allclose(v, torch.zeros(ny))
+    v, _ = yy.max(0)
+    assert torch.allclose(v, torch.tensor([2., 3.]))
+    yyy = tsf.invert_transform(yy, x)
+    assert torch.allclose(y, yyy, atol=1e-6)
+
 
 def try_robust_min_max_scaler():
     N = 100

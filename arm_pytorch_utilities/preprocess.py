@@ -5,6 +5,7 @@ import typing
 
 import torch
 from arm_pytorch_utilities import load_data
+from arm_pytorch_utilities import tensor_utils
 
 logger = logging.getLogger(__name__)
 
@@ -221,8 +222,20 @@ class MinMaxScaler(SingleTransformer):
         self._fit_with_low_high(torch.min(X, dim=0)[0], torch.max(X, dim=0)[0])
 
     def _fit_with_low_high(self, low, high):
-        # TODO handle per-dimensional feature range
         feature_range = self.feature_range
+        nx = low.shape[0]
+        # handle per-dimensional feature range
+        if type(feature_range[0]) in (list, tuple):
+            feature_range = torch.tensor(feature_range)
+        if tensor_utils.is_tensor_like(feature_range):
+            # should be 2 x nx; could have fewer columns; would fill with (0,1)
+            assert len(feature_range) is 2
+            assert feature_range.shape[0] is 2
+            f = torch.zeros((2, nx), dtype=low.dtype, device=low.device)
+            f[1] = 1
+            f[:, :feature_range.shape[1]] = feature_range.to(dtype=low.dtype, device=low.device)
+            feature_range = f
+
         data_range = high - low
         # handle zeros/no variation in that dimension
         data_range[data_range == 0.] = 1.
