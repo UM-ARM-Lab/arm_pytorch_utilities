@@ -63,6 +63,19 @@ def test_min_max_scaler():
     verify_scaler_tsf(x, y, tsf)
 
 
+def try_robust_min_max_scaler():
+    N = 100
+    nx = 3
+    ny = 2
+    x = torch.rand((N, nx)) * 3 - 1
+    y = torch.rand((N, ny)) * 2 + 2
+    tsf = preprocess.PytorchTransformer(preprocess.RobustMinMaxScaler())
+    tsf.fit(x, y)
+    xx, yy, _ = tsf.transform(x, y)
+    print("xx low {} high {}".format(xx.min(dim=0)[0], xx.max(dim=0)[0]))
+    print("yy low {} high {}".format(yy.min(dim=0)[0], yy.max(dim=0)[0]))
+
+
 def test_angle_to_cos_sin():
     N = 100
     nx = 3
@@ -91,3 +104,4 @@ if __name__ == "__main__":
     test_min_max_scaler()
     test_preprocess_compose()
     test_angle_to_cos_sin()
+    try_robust_min_max_scaler()

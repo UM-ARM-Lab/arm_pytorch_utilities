@@ -217,22 +217,36 @@ class MinMaxScaler(SingleTransformer):
         self._scale, self._min = None, None
 
     def fit(self, X):
-        feature_range = self.feature_range
-        # TODO assume we have no nans for now
-        data_min = torch.min(X, dim=0)[0]
-        data_max = torch.max(X, dim=0)[0]
+        # TODO assume we have no nans
+        self._fit_with_low_high(torch.min(X, dim=0)[0], torch.max(X, dim=0)[0])
 
-        data_range = data_max - data_min
+    def _fit_with_low_high(self, low, high):
+        # TODO handle per-dimensional feature range
+        feature_range = self.feature_range
+        data_range = high - low
         # handle zeros/no variation in that dimension
         data_range[data_range == 0.] = 1.
         self._scale = ((feature_range[1] - feature_range[0]) / data_range)
-        self._min = feature_range[0] - data_min * self._scale
+        self._min = feature_range[0] - low * self._scale
 
     def transform(self, X):
         return (X * self._scale) + self._min
 
     def inverse_transform(self, X):
         return (X - self._min) / self._scale
+
+
+class RobustMinMaxScaler(MinMaxScaler):
+    """Like min-max, but ignore outliers"""
+
+    def __init__(self, percentile=0.975, **kwargs):
+        super().__init__(**kwargs)
+        self.percentile = percentile
+
+    def fit(self, X):
+        low = torch.kthvalue(X, int((1 - self.percentile) * X.shape[0]), dim=0)[0]
+        high = torch.kthvalue(X, int(self.percentile * X.shape[0]), dim=0)[0]
+        self._fit_with_low_high(low, high)
 
 
 class StandardScaler(SingleTransformer):
