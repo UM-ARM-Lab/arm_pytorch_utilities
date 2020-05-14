@@ -31,10 +31,10 @@ class LearnableParameterizedModel:
         return list(itertools.chain.from_iterable(module.parameters() for module in self.modules().values()))
 
     def device(self):
-        return next(self.parameters()).device
+        return self.parameters()[0].device
 
     def dtype(self):
-        return next(self.parameters()).dtype
+        return self.parameters()[0].dtype
 
     def _model_state_dict(self):
         """
