@@ -36,7 +36,7 @@ def handle_batch_input(func):
         ret = func(*args, **kwargs)
         # restore original batch dimensions; keep variable dimension (nx)
         if type(ret) is tuple:
-            ret = [v if not is_tensor_like(v) else (
+            ret = [v if (not is_tensor_like(v) or len(v.shape) == 0) else (
                 v.view(*batch_dims, v.shape[-1]) if len(v.shape) == 2 else v.view(*batch_dims)) for v in ret]
         else:
             if is_tensor_like(ret):
