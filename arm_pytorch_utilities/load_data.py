@@ -1,6 +1,5 @@
 import abc
 import os
-from typing import Type
 from types import ModuleType
 
 import numpy as np

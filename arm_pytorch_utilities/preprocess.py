@@ -48,6 +48,10 @@ class Transformer(abc.ABC):
         """Invert transformation on Y with potentially information from X (untransformed)"""
 
     @abc.abstractmethod
+    def invert_x(self, X):
+        """Invert transformation on X if possible (for transforms that lose information this may be impossible)"""
+
+    @abc.abstractmethod
     def _fit_impl(self, XU, Y, labels):
         """Fit internal state to training set"""
 
@@ -87,6 +91,12 @@ class Compose(Transformer):
             Y = t.invert_transform(Y, X)
         return Y
 
+    def invert_x(self, X):
+        # need to also reverse order
+        for t in reversed(self.transforms):
+            X = t.invert_x(X)
+        return X
+
     def update_data_config(self, config: load_data.DataConfig):
         for t in self.transforms:
             t.update_data_config(config)
@@ -100,7 +110,10 @@ class NoTransform(Transformer):
         return Y
 
     def invert_transform(self, Y, X=None):
-        raise NotImplemented
+        return Y
+
+    def invert_x(self, X):
+        return X
 
     def _fit_impl(self, XU, Y, labels):
         # optionally do some fitting on the training set
@@ -119,6 +132,9 @@ class PolynomialState(NoTransform):
     def transform_x(self, XU):
         p = self.poly.transform(XU.numpy())
         return torch.from_numpy(p)
+
+    def invert_x(self, X):
+        raise NotImplemented
 
 
 class SklearnTransformer(Transformer):
@@ -141,6 +157,9 @@ class SklearnTransformer(Transformer):
 
     def invert_transform(self, Y, X=None):
         return torch.from_numpy(self.methodY.inverse_transform(Y))
+
+    def invert_x(self, X):
+        return torch.from_numpy(self.method.inverse_transform(X))
 
 
 class SingleTransformer:
@@ -197,6 +216,9 @@ class PytorchTransformer(Transformer):
 
     def invert_transform(self, Y, X=None):
         return self.methodY.inverse_transform(Y)
+
+    def invert_x(self, X):
+        return self.method.inverse_transform(X)
 
     def update_data_config(self, config: load_data.DataConfig):
         change, loc = self.method.data_dim_change()
@@ -341,3 +363,6 @@ class DatasetPreprocessor(abc.ABC):
 
     def invert_transform(self, Y, X=None):
         return self.tsf.invert_transform(Y, X)
+
+    def invert_x(self, X):
+        return self.tsf.invert_x(X)
