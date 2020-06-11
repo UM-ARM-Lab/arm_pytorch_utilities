@@ -1,6 +1,7 @@
 import abc
 import os
 from typing import Type
+from types import ModuleType
 
 import numpy as np
 import scipy.io
@@ -81,7 +82,8 @@ class DataLoader(abc.ABC):
     def __init__(self, file_cfg=None, config=DataConfig()):
         if file_cfg is None:
             raise RuntimeError("Incomplete specification of DataLoader")
-        self.file_cfg = file_cfg
+        self.file_cfg = {key: value for key, value in file_cfg.__dict__.items() if
+                         not key.startswith('_') and not isinstance(value, ModuleType)}
         self.config = config
 
     @abc.abstractmethod
@@ -106,7 +108,7 @@ class DataLoader(abc.ABC):
         if override_config:
             self.config = override_config
         data = None
-        full_dir = os.path.join(self.file_cfg.DATA_DIR, dir)
+        full_dir = os.path.join(self.file_cfg['DATA_DIR'], dir)
 
         if os.path.isfile(full_dir):
             data = self.load_file(full_dir, data)
