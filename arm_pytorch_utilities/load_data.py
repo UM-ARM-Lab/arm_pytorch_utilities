@@ -1,6 +1,5 @@
 import abc
 import os
-from types import ModuleType
 
 import numpy as np
 import scipy.io
@@ -82,7 +81,7 @@ class DataLoader(abc.ABC):
         if file_cfg is None:
             raise RuntimeError("Incomplete specification of DataLoader")
         self.file_cfg = {key: value for key, value in file_cfg.__dict__.items() if
-                         not key.startswith('_') and not isinstance(value, ModuleType)}
+                         not key.startswith('_') and isinstance(value, str)}
         self.config = config
 
     @abc.abstractmethod
