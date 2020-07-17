@@ -279,7 +279,7 @@ class RobustMinMaxScaler(MinMaxScaler):
         self.percentile = percentile
 
     def fit(self, X):
-        low = torch.kthvalue(X, int((1 - self.percentile) * X.shape[0]), dim=0)[0]
+        low = torch.kthvalue(X, max(1, int((1 - self.percentile) * X.shape[0])), dim=0)[0]
         high = torch.kthvalue(X, int(self.percentile * X.shape[0]), dim=0)[0]
         self._fit_with_low_high(low, high)
 
