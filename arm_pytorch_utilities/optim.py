@@ -5,6 +5,7 @@ optimizer = # {any optimizer} e.g. torch.optim.Adam
 if args.lookahead:
     optimizer = Lookahead(optimizer, la_steps=args.la_steps, la_alpha=args.la_alpha)
 """
+import os
 from collections import defaultdict
 
 import torch
@@ -12,6 +13,8 @@ from torch.optim.optimizer import Optimizer
 
 
 def get_device():
+    if 'USE_CPU' in os.environ and os.environ['USE_CPU']:
+        return torch.device('cpu')
     return torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
 
 
