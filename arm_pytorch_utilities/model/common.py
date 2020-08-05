@@ -112,7 +112,11 @@ class LearnableParameterizedModel:
         """
         if not os.path.isfile(filename):
             return False
-        checkpoint = torch.load(filename)
+        try:
+            checkpoint = torch.load(filename)
+        except RuntimeError as e:
+            logger.warning(e)
+            checkpoint = torch.load(filename, map_location=torch.device('cpu'))
         self.step = checkpoint['step']
         if not self._load_model_state_dict(checkpoint['state_dict']):
             return False
