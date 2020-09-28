@@ -198,6 +198,22 @@ class NullSingleTransformer(SingleTransformer):
         return X
 
 
+class SelectTransformer(SingleTransformer):
+    """Select some dimensions of incoming data; do nothing on inverse"""
+
+    def __init__(self, cols):
+        self.cols = cols
+
+    def fit(self, X):
+        tensor_utils.ensure_tensor(X.device, torch.long, self.cols)
+
+    def transform(self, X):
+        return X[:, self.cols]
+
+    def inverse_transform(self, X):
+        return X
+
+
 class PytorchTransformer(Transformer):
     def __init__(self, method: SingleTransformer, methodY=None):
         super().__init__()

@@ -114,8 +114,21 @@ def test_angle_to_cos_sin():
             torch.zeros_like(x[:, angle_index]), atol=1e-6)
 
 
+def test_select_transform():
+    N = 100
+    nx = 6
+    x = torch.rand((N, nx)) * 3 - 1
+    selected_nx = [0, 1, 4, 5]
+    tsf = preprocess.SelectTransformer(selected_nx)
+    tsf.fit(x)
+    xx = tsf.transform(x)
+
+    assert torch.allclose(xx, x[:, selected_nx])
+
+
 if __name__ == "__main__":
     test_min_max_scaler()
     test_preprocess_compose()
     test_angle_to_cos_sin()
     try_robust_min_max_scaler()
+    test_select_transform()
