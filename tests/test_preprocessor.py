@@ -77,6 +77,20 @@ def test_min_max_scaler():
     assert torch.allclose(y, yyy, atol=1e-6)
 
 
+def test_min_max_shared_scale():
+    N = 100
+    nx = 3
+    x = torch.randn((N, nx))
+    x[:, 1] = x[:, 1] * 2 + 5
+    tsf = preprocess.MinMaxScaler(dims_share_scale=[[0, 1]])
+    tsf.fit(x)
+    xx = tsf.transform(x)
+    v, _ = xx.min(0)
+    assert torch.allclose(v, torch.zeros(nx))
+    v, _ = xx.max(0)
+    assert torch.allclose(tsf._scale[0], tsf._scale[1])
+
+
 def try_robust_min_max_scaler():
     N = 100
     nx = 3
@@ -128,6 +142,7 @@ def test_select_transform():
 
 if __name__ == "__main__":
     test_min_max_scaler()
+    test_min_max_shared_scale()
     test_preprocess_compose()
     test_angle_to_cos_sin()
     try_robust_min_max_scaler()

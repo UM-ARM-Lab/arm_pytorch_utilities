@@ -2,6 +2,7 @@ import abc
 import copy
 import logging
 import typing
+from typing import Iterable
 
 import torch
 from arm_pytorch_utilities import load_data
@@ -250,9 +251,10 @@ class PytorchTransformer(Transformer):
 
 
 class MinMaxScaler(SingleTransformer):
-    def __init__(self, feature_range=(0, 1), **kwargs):
+    def __init__(self, feature_range=(0, 1), dims_share_scale: Iterable[typing.List[int]] = (), **kwargs):
         super().__init__(**kwargs)
         self.feature_range = feature_range
+        self.dims_share_scale = dims_share_scale
         self._scale, self._min = None, None
 
     def fit(self, X):
@@ -278,6 +280,10 @@ class MinMaxScaler(SingleTransformer):
         # handle zeros/no variation in that dimension
         data_range[data_range == 0.] = 1.
         self._scale = ((feature_range[1] - feature_range[0]) / data_range)
+        for shared_groups in self.dims_share_scale:
+            self._scale[shared_groups] = self._scale[shared_groups].mean()
+            # note that afterward the shared groups will not have max = feature_range[1]
+            # but will still have min = feature_range[0]
         self._min = feature_range[0] - low * self._scale
 
     def transform(self, X):
