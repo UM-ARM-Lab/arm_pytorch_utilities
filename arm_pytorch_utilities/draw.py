@@ -54,7 +54,7 @@ def confidence_ellipse(center, cov, ax, n_std=3.0, facecolor='none', **kwargs):
     return ax.add_patch(ellipse)
 
 
-def highlight_value_ranges(discrete_array, color_map='rgbcmyk', ymin=0., ymax=1., ax=None):
+def highlight_value_ranges(discrete_array, color_map='rgbcmyk', ymin=0., ymax=1., ax=None, x_values=None):
     """Highlight the background of current figure with a label array; a value of 0 is left blank"""
     for value, start, end in array_utils.discrete_array_to_value_ranges(discrete_array):
         if value == 0:
@@ -62,6 +62,8 @@ def highlight_value_ranges(discrete_array, color_map='rgbcmyk', ymin=0., ymax=1.
         # use the current axis if one is not given (global call on plt module will use current axis)
         if ax is None:
             ax = plt
+        if x_values is not None:
+            start, end = x_values[start], x_values[end]
         ax.axvspan(start, end, facecolor=color_map[value % len(color_map)], alpha=0.3, ymin=ymin, ymax=ymax)
 
 
