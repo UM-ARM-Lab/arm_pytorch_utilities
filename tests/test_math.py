@@ -23,6 +23,20 @@ def test_batch_angle_rotate():
         assert torch.allclose(torch.tensor(r), xyr[i])
 
 
+def test_cos_sim_pairwise():
+    N = 100
+    M = 30
+    nx = 5
+    x1 = torch.rand((N, nx))
+    x2 = torch.rand((M, nx))
+    C = math_utils.cos_sim_pairwise(x1, x2)
+    assert C.shape == (N, M)
+    for m in range(M):
+        c = torch.cosine_similarity(x1, x2[m].view(1, -1))
+        assert torch.allclose(c, C[:, m])
+
+
 if __name__ == "__main__":
     test_angle_normalize()
     test_batch_angle_rotate()
+    test_cos_sim_pairwise()

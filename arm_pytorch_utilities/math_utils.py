@@ -63,3 +63,18 @@ def angular_diff_batch(a, b):
 def angle_normalize(a):
     """Wrap angle between (-pi,pi)"""
     return ((a + math.pi) % (2 * math.pi)) - math.pi
+
+
+def cos_sim_pairwise(x1, x2=None, eps=1e-8):
+    """Pairwise cosine similarity between 2 sets of vectors
+
+    From https://github.com/pytorch/pytorch/issues/11202
+    :param x1: (N, nx) N tensors of nx dimension each
+    :param x2: (M, nx) M tensors of nx dimension each, equal to x1 if not specified
+    :param eps: threshold above 0 to reduce dividing by 0
+    :return: (N, M) pairwise cosine similarity
+    """
+    x2 = x1 if x2 is None else x2
+    w1 = x1.norm(p=2, dim=1, keepdim=True)
+    w2 = w1 if x2 is x1 else x2.norm(p=2, dim=1, keepdim=True)
+    return torch.mm(x1, x2.t()) / (w1 * w2.t()).clamp(min=eps)
