@@ -5,11 +5,15 @@ import torch
 
 
 def discrete_array_to_value_ranges(discrete_array):
-    """Return a sequence of (value, start, end) for an array of discrete values that have substrings"""
+    """
+    Return a sequence of (value, start, end) for an array of discrete values that have substrings
+
+    discrete_array[start] up to and including discrete_array[end] has the same value
+    """
     i = 0
     for c, g in groupby(discrete_array):
         frames = sum(1 for _ in g)
-        yield c, i, i + frames
+        yield c, i, i + frames - 1
         i += frames
 
 
