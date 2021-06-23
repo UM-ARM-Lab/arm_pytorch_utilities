@@ -30,9 +30,11 @@ class LearnableParameterizedModel:
         """
         return list(itertools.chain.from_iterable(module.parameters() for module in self.modules().values()))
 
+    @property
     def device(self):
         return self.parameters()[0].device
 
+    @property
     def dtype(self):
         return self.parameters()[0].dtype
 
