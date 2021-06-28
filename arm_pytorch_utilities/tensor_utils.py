@@ -50,7 +50,10 @@ def handle_batch_input(func):
 
 
 def ensure_tensor(device, dtype, *args):
-    tensors = tuple(torch.tensor(x, device=device, dtype=dtype) for x in args)
+    tensors = tuple(
+        x.to(device=device, dtype=dtype) if torch.is_tensor(x) else
+        torch.tensor(x, device=device, dtype=dtype)
+        for x in args)
     return tensors if len(tensors) > 1 else tensors[0]
 
 
