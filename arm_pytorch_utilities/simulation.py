@@ -8,6 +8,8 @@ import pybullet as p
 import pybullet_data
 import abc
 
+from arm_pytorch_utilities import rand
+
 logger = logging.getLogger(__name__)
 
 
@@ -46,12 +48,12 @@ class Simulation(abc.ABC):
         self.randseed = None
 
     def run(self, randseed=None, run_name=None):
-        random.seed(time.time())
         if randseed is None:
+            rand.seed(int(time.time()))
             randseed = random.randint(0, 1000000)
         logger.debug('random seed: %d', randseed)
         self.randseed = randseed
-        random.seed(randseed)
+        rand.seed(randseed)
 
         ret = self._configure_physics_engine()
         if ret is not ReturnMeaning.SUCCESS:
