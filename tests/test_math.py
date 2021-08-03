@@ -36,7 +36,19 @@ def test_cos_sim_pairwise():
         assert torch.allclose(c, C[:, m])
 
 
+def test_angle_between():
+    u = torch.tensor([[1., 0, 0]])
+    v = torch.tensor([[0., 1, 0], [1, 0, 0]])
+    assert torch.allclose(math_utils.angle_between(u, v), torch.tensor([[math.pi / 2, 0]]))
+
+    u = torch.tensor([[1., 0, 0], [-1, 0, 0]])
+    res = math_utils.angle_between(u, v)
+    assert res.shape == (2, 2)
+    assert torch.allclose(res, torch.tensor([[math.pi / 2, 0], [math.pi / 2, math.pi]]))
+
+
 if __name__ == "__main__":
     test_angle_normalize()
     test_batch_angle_rotate()
     test_cos_sim_pairwise()
+    test_angle_between()

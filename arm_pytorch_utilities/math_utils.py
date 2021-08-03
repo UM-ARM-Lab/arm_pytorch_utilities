@@ -42,6 +42,20 @@ def batch_rotate_wrt_origin(xy, theta):
     return linalg.batch_batch_product(xy, R)
 
 
+def angle_between(u: torch.tensor, v: torch.tensor):
+    """Angle between 2 n-dimensional vectors
+
+    :param u N x n tensor
+    :param v M x n tensor
+    :return N x M angle in radians between each tensor
+    """
+    u_n = u / u.norm(dim=1, keepdim=True)
+    v_n = v / v.norm(dim=1, keepdim=True)
+    c = clip(u_n @ v_n.transpose(0, 1),
+             torch.tensor(-1, device=u.device, dtype=u.dtype), torch.tensor(1, device=u.device, dtype=u.dtype))
+    return torch.acos(c)
+
+
 def angular_diff(a, b):
     """Angle difference from b to a (a - b)"""
     d = a - b
