@@ -7,6 +7,12 @@ from arm_pytorch_utilities.model.mdn import MixtureDensityNetwork
 from matplotlib.patches import Ellipse
 
 
+def clear_ax_content(ax):
+    """Clear a matplotlib axis's content without changing its limits or labels"""
+    for artist in ax.lines + ax.collections + ax.patches:
+        artist.remove()
+
+
 def confidence_ellipse(center, cov, ax, n_std=3.0, facecolor='none', **kwargs):
     """
     Create a plot of the covariance confidence ellipse around center with covariance cov
