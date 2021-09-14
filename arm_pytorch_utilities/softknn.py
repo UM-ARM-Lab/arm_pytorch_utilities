@@ -46,7 +46,7 @@ class SoftKNN(torch.nn.Module):
 
         # TODO add more activation options
         # apply weighting function to the distances/nodes
-        if self.activation is 'linear':
+        if self.activation == 'linear':
             weights = dd.clamp(min=0)
         else:
             weights = torch.sigmoid(dd * self.activation)

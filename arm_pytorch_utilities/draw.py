@@ -189,7 +189,7 @@ def cumulative_dist(series, labels, xlabel, indicators=None):
     for i in range(len(series)):
         x = series[i]
         label = labels[i]
-        assert len(x.shape) is 1
+        assert len(x.shape) == 1
         x = torch.cat((torch.zeros(1, dtype=x.dtype, device=x.device), x))
         N = x.shape[0]
         cumulative_ratio = np.linspace(0, 1, N)

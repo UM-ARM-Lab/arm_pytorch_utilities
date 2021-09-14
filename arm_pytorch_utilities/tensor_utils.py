@@ -10,7 +10,7 @@ def is_tensor_like(x):
 def ensure_2d_input(func):
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
-        args = [v.reshape(1, -1) if (is_tensor_like(v) and len(v.shape) is 1) else v for v in args]
+        args = [v.reshape(1, -1) if (is_tensor_like(v) and len(v.shape) == 1) else v for v in args]
         return func(*args, **kwargs)
 
     return wrapper
@@ -70,7 +70,7 @@ def ensure_diagonal(Q, dim):
             Q = torch.eye(dim) * Q
         else:
             Q = torch.tensor(Q)
-    if len(Q.shape) is 1:
+    if len(Q.shape) == 1:
         if Q.shape[0] is not dim:
             raise RuntimeError("Expect {} sized diagonal vector but given {}".format(dim, Q.shape[0]))
         Q = torch.diag(Q)

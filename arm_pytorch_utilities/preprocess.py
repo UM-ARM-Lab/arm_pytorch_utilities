@@ -269,8 +269,8 @@ class MinMaxScaler(SingleTransformer):
             feature_range = torch.tensor(feature_range)
         if tensor_utils.is_tensor_like(feature_range):
             # should be 2 x nx; could have fewer columns; would fill with (0,1)
-            assert len(feature_range) is 2
-            assert feature_range.shape[0] is 2
+            assert len(feature_range) == 2
+            assert feature_range.shape[0] == 2
             f = torch.zeros((2, nx), dtype=low.dtype, device=low.device)
             f[1] = 1
             f[:, :feature_range.shape[1]] = feature_range.to(dtype=low.dtype, device=low.device)
