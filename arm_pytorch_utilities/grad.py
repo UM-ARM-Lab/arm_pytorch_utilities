@@ -14,11 +14,14 @@ def jacobian(f, x):
     if x.dim() < 2:
         x = x.view(1, -1)
     y = f(x)
-    ny = y.shape[1]
+    ny = 1 if len(y.shape) < 2 else y.shape[1]
     x = x.repeat(ny, 1)
     x.requires_grad_(True)
     y = f(x)
-    y.backward(torch.eye(ny, dtype=y.dtype, device=y.device))
+    if ny == 1:
+        y.backward()
+    else:
+        y.backward(torch.eye(ny, dtype=y.dtype, device=y.device))
     return x.grad.data
 
 
