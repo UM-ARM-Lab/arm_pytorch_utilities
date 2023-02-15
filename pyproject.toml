@@ -1,6 +1,6 @@
 [project]
 name = "arm_pytorch_utilities"
-version = "0.3.0"
+version = "0.3.1"
 description = "Utilities for working with pytorch"
 readme = "README.md" # Optional
 
@@ -55,7 +55,8 @@ dependencies = [# Optional
     'torch',
     'numpy',
     'matplotlib',
-    'scipy'
+    'scipy',
+    'pytorch-seed'
 ]
 
 # List additional groups of dependencies here (e.g. development
