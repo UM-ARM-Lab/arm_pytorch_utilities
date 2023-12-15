@@ -16,8 +16,24 @@ def ensure_2d_input(func):
     return wrapper
 
 
+def _interpret_batch_output(batch_dims, v):
+    if not is_tensor_like(v) or len(v.shape) == 0:
+        return v
+    # typical case where the input (squashed to a 2D N x nx) is returned as N x ny
+    if len(v.shape) == 2:
+        return v.reshape(*batch_dims, v.shape[-1]).squeeze(-1)
+    # case where the output has more elements than the input (e.g. it created some batch dimensions)
+    if len(v.shape) > 2:
+        # e.g. N x nx is returned as B x D x N x ny, and we convert that to B x D x (*batch_dims) x ny
+        return v.reshape(*v.shape[:-2], *batch_dims, v.shape[-1]).squeeze(-1)
+    return v.reshape(*batch_dims)
+
+
 def handle_batch_input(func):
-    """For func that expect 2D input, handle input that have more than 2 dimensions by flattening them temporarily"""
+    """
+    For func that expect 2D input, handle input that have more than 2 dimensions by flattening them temporarily
+    It tries to infer the batch dimensions from the first tensor-like input.
+    """
 
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
@@ -36,14 +52,9 @@ def handle_batch_input(func):
         ret = func(*args, **kwargs)
         # restore original batch dimensions; keep variable dimension (nx)
         if type(ret) is tuple:
-            ret = [v if (not is_tensor_like(v) or len(v.shape) == 0) else (
-                v.reshape(*batch_dims, v.shape[-1]) if len(v.shape) == 2 else v.reshape(*batch_dims)) for v in ret]
+            ret = [_interpret_batch_output(batch_dims, v) for v in ret]
         else:
-            if is_tensor_like(ret):
-                if len(ret.shape) == 2:
-                    ret = ret.reshape(*batch_dims, ret.shape[-1])
-                else:
-                    ret = ret.reshape(*batch_dims)
+            ret = _interpret_batch_output(batch_dims, ret)
         return ret
 
     return wrapper

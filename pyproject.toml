@@ -1,6 +1,6 @@
 [project]
 name = "arm_pytorch_utilities"
-version = "0.3.2"
+version = "0.4.0"
 description = "Utilities for working with pytorch"
 readme = "README.md" # Optional
 
