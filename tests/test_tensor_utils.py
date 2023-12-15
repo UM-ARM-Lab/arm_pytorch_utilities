@@ -22,9 +22,14 @@ def test_ensure_diagonal():
 
 
 def test_handle_batch_input():
-    @tensor_utils.handle_batch_input
+    @tensor_utils.handle_batch_input(n=2)
     def add_and_average(a, b):
         assert len(a.shape) == 2
+        return a + b, (a + b).mean()
+
+    @tensor_utils.handle_batch_input(n=3)
+    def add_and_average3(a, b):
+        assert len(a.shape) == 3
         return a + b, (a + b).mean()
 
     B = 4
@@ -33,6 +38,10 @@ def test_handle_batch_input():
     A = torch.rand((B, N, nx))
     Ahat, mean = add_and_average(A, 0)
 
+    assert A.shape == Ahat.shape
+    assert torch.allclose(A, Ahat)
+
+    Ahat, mean = add_and_average3(A, 0)
     assert A.shape == Ahat.shape
     assert torch.allclose(A, Ahat)
 
