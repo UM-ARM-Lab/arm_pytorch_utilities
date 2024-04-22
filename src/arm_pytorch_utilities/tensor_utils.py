@@ -69,19 +69,20 @@ def handle_batch_input(n=2):
                 return func(*args, **kwargs)
 
             # reduce all batch dimensions down to the first one
-            args = [v.view(-1, *v.shape[-(n - 1):]) if (is_tensor_like(v) and len(v.shape) > 2) else v for v in args]
+            args = [v.reshape(-1, *v.shape[-(n - 1):]) if (is_tensor_like(v) and len(v.shape) > 2) else v for v in args]
             ret = func(*args, **kwargs)
             # restore original batch dimensions; keep variable dimension (nx)
             if type(ret) is tuple:
                 ret = [v if (not is_tensor_like(v) or len(v.shape) == 0) else (
-                    v.view(*batch_dims, *v.shape[-(n - 1):]) if len(v.shape) == n else v.view(*batch_dims)) for v in
+                    v.reshape(*batch_dims, *v.shape[-(n - 1):]) if len(v.shape) == n else v.reshape(*batch_dims)) for v
+                       in
                        ret]
             else:
                 if is_tensor_like(ret):
                     if len(ret.shape) == n:
-                        ret = ret.view(*batch_dims, *ret.shape[-(n - 1):])
+                        ret = ret.reshape(*batch_dims, *ret.shape[-(n - 1):])
                     else:
-                        ret = ret.view(*batch_dims)
+                        ret = ret.reshape(*batch_dims)
             return ret
 
         return wrapper
