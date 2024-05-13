@@ -56,6 +56,41 @@ def angle_between(u: torch.tensor, v: torch.tensor):
     return torch.acos(c)
 
 
+def angle_between_stable(u: torch.tensor, v: torch.tensor):
+    """Angle between 2 n-dimensional vectors. This is a numerically stable version (acos behaves poorly around 1 and -1)
+
+    :param u N x n tensor
+    :param v M x n tensor
+    :return N x M angle in radians between each tensor
+    """
+    dim = -1
+    u_norm = u.norm(dim=dim, keepdim=True)
+    v_norm = v.norm(dim=dim, keepdim=True)
+    uv = u.unsqueeze(1).repeat(1, v.shape[0], 1) * v_norm
+    vu = v.unsqueeze(0).repeat(u.shape[0], 1, 1) * u_norm.unsqueeze(1)
+    num = (uv - vu).norm(dim=dim)
+    den = (uv + vu).norm(dim=dim)
+    return 2 * torch.atan2(num, den)
+
+
+def angle_between_batch(u: torch.tensor, v: torch.tensor, dim=-1):
+    """
+    Angle between 2 n-dimensional vectors. This is a numerically stable version (acos behaves poorly around 1 and -1)
+    See https://math.stackexchange.com/questions/1143354/numerically-stable-method-for-angle-between-3d-vectors
+
+    :param u N x n tensor
+    :param v N x n tensor
+    :param dim: dimension to reduce
+    :return N angle in radians between each tensor
+    """
+    u_norm = u.norm(dim=dim, keepdim=True)
+    v_norm = v.norm(dim=dim, keepdim=True)
+    return 2 * torch.atan2(
+        (u * v_norm - u_norm * v).norm(dim=dim),
+        (u * v_norm + u_norm * v).norm(dim=dim)
+    )
+
+
 def angular_diff(a, b):
     """Angle difference from b to a (a - b)"""
     d = a - b

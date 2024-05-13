@@ -46,9 +46,38 @@ def test_angle_between():
     assert res.shape == (2, 2)
     assert torch.allclose(res, torch.tensor([[math.pi / 2, 0], [math.pi / 2, math.pi]]))
 
+    N = 20
+    M = 30
+    u = torch.randn(N, 3)
+    v = torch.randn(M, 3)
+
+    res = math_utils.angle_between(u, v)
+    res2 = math_utils.angle_between_stable(u, v)
+    assert torch.allclose(res, res2)  # only time when they shouldn't be equal is when u ~= v or u ~= -v
+
+
+def test_angle_between_batch():
+    N = 100
+    u = torch.randn(N, 3)
+    res = math_utils.angle_between_batch(u, u)
+    assert torch.allclose(res, torch.zeros(N))
+    res = math_utils.angle_between_batch(u, -u)
+    assert torch.allclose(res, math.pi * torch.ones(N))
+
+    u = torch.randn(N, 2)
+    # project onto 3d with z=0
+    u = torch.cat((u, torch.zeros(N, 1)), dim=1)
+
+    # rotate by 90 degrees around z
+    R = torch.tensor([[0, 1, 0], [-1, 0, 0], [0, 0, 1]], dtype=u.dtype)
+    v = u @ R
+    res = math_utils.angle_between_batch(u, v)
+    assert torch.allclose(res, math.pi / 2 * torch.ones(N))
+
 
 if __name__ == "__main__":
     test_angle_normalize()
     test_batch_angle_rotate()
     test_cos_sim_pairwise()
     test_angle_between()
+    test_angle_between_batch()
