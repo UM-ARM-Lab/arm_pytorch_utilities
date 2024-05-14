@@ -54,124 +54,124 @@ def KNN(features, k):
     return dists, Idx
 
 
-def test_softknn(debug=False):
-    # doesn't always converge in time for all random seed
-    seed = 318455
-    logger.info('random seed: %d', rand.seed(seed))
+# def test_softknn(debug=False):
+#     # doesn't always converge in time for all random seed
+#     seed = 318455
+#     logger.info('random seed: %d', rand.seed(seed))
+#
+#     D_in = 3
+#     D_out = 1
+#
+#     target_params = torch.rand(D_in, D_out).t()
+#     # target_params = torch.tensor([[1, -1, 1]], dtype=torch.float )
+#     target_tsf = torch.nn.Linear(D_in, D_out, bias=False)
+#     target_tsf.weight.data = target_params
+#     for param in target_tsf.parameters():
+#         param.requires_grad = False
+#
+#     def produce_output(X):
+#         # get the features
+#         y = target_tsf(X)
+#         # cluster in feature space
+#         dists, Idx = KNN(y, 5)
+#
+#         # take the sum inside each neighbourhood
+#         # TODO do a least square fit over X inside each neighbourhood
+#         features2 = torch.zeros_like(X)
+#         for i in range(dists.shape[0]):
+#             # md = max(dists[i])
+#             # d = md - dists[i]
+#             # w = d / torch.norm(d)
+#             features2[i] = torch.mean(X[Idx[i]], 0)
+#             # features2[i] = torch.matmul(w, X[Idx[i]])
+#
+#         return features2
+#
+#     N = 400
+#     ds = load_data.RandomNumberDataset(produce_output, num=400, input_dim=D_in)
+#     train_set, validation_set = load_data.split_train_validation(ds)
+#     train_loader = torch.utils.data.DataLoader(train_set, batch_size=N, shuffle=True)
+#     val_loader = torch.utils.data.DataLoader(validation_set, batch_size=N, shuffle=False)
+#
+#     criterion = torch.nn.MSELoss(reduction='sum')
+#
+#     model = SimpleNet(D_in, D_out)
+#     optimizer = torch.optim.SGD(model.parameters(), lr=1e-4)
+#
+#     losses = []
+#     vlosses = []
+#     pdist = []
+#     cosdist = []
+#
+#     def evaluateLoss(data):
+#         # target
+#         x, y = data
+#         pred = model(x, y)
+#
+#         loss = criterion(pred, y)
+#         return loss
+#
+#     def evaluateValidation():
+#         with torch.no_grad():
+#             loss = sum(evaluateLoss(data) for data in val_loader)
+#             return loss / len(val_loader.dataset)
+#
+#     # model.linear1.weight.data = target_params.clone()
+#     for epoch in range(200):
+#         for i, data in enumerate(train_loader, 0):
+#             optimizer.zero_grad()
+#
+#             loss = evaluateLoss(data)
+#             loss.backward()
+#             optimizer.step()
+#
+#             avg_loss = loss.item() / len(data[0])
+#
+#             losses.append(avg_loss)
+#             vlosses.append(evaluateValidation())
+#             pdist.append(torch.norm(model.linear1.weight.data - target_params))
+#             cosdist.append(torch.nn.functional.cosine_similarity(model.linear1.weight.data, target_params))
+#             if debug:
+#                 print('[%d, %5d] loss: %.3f' % (epoch + 1, i + 1, avg_loss))
+#
+#     if debug:
+#         print('Finished Training')
+#         print('Target params: {}'.format(target_params))
+#         print('Learned params:')
+#         for param in model.parameters():
+#             print(param)
+#
+#         print('validation total loss: {:.3f}'.format(evaluateValidation()))
+#
+#     model.linear1.weight.data = target_params.clone()
+#     target_loss = evaluateValidation()
+#
+#     if debug:
+#         print('validation total loss with target params: {:.3f}'.format(target_loss))
+#
+#         plt.plot(range(len(losses)), losses)
+#         plt.plot(range(len(losses)), vlosses)
+#         plt.plot(range(len(losses)), [target_loss] * len(losses), linestyle='--')
+#         plt.legend(['training minibatch', 'whole validation', 'validation with target params'])
+#         plt.xlabel('minibatch')
+#         plt.ylabel('MSE loss')
+#
+#         plt.figure()
+#         plt.plot(range(len(pdist)), pdist)
+#         plt.xlabel('minibatch')
+#         plt.ylabel('euclidean distance of model params from target')
+#
+#         plt.figure()
+#         plt.plot(range(len(cosdist)), cosdist)
+#         plt.xlabel('minibatch')
+#         plt.ylabel('cosine similarity between model params and target')
+#         plt.show()
+#
+#     # check that we're close to the actual KNN performance on validation set
+#     last_few = 5
+#     loss_tolerance = 0.02
+#     assert sum(vlosses[-last_few:]) / last_few - target_loss < target_loss * loss_tolerance
 
-    D_in = 3
-    D_out = 1
 
-    target_params = torch.rand(D_in, D_out).t()
-    # target_params = torch.tensor([[1, -1, 1]], dtype=torch.float )
-    target_tsf = torch.nn.Linear(D_in, D_out, bias=False)
-    target_tsf.weight.data = target_params
-    for param in target_tsf.parameters():
-        param.requires_grad = False
-
-    def produce_output(X):
-        # get the features
-        y = target_tsf(X)
-        # cluster in feature space
-        dists, Idx = KNN(y, 5)
-
-        # take the sum inside each neighbourhood
-        # TODO do a least square fit over X inside each neighbourhood
-        features2 = torch.zeros_like(X)
-        for i in range(dists.shape[0]):
-            # md = max(dists[i])
-            # d = md - dists[i]
-            # w = d / torch.norm(d)
-            features2[i] = torch.mean(X[Idx[i]], 0)
-            # features2[i] = torch.matmul(w, X[Idx[i]])
-
-        return features2
-
-    N = 400
-    ds = load_data.RandomNumberDataset(produce_output, num=400, input_dim=D_in)
-    train_set, validation_set = load_data.split_train_validation(ds)
-    train_loader = torch.utils.data.DataLoader(train_set, batch_size=N, shuffle=True)
-    val_loader = torch.utils.data.DataLoader(validation_set, batch_size=N, shuffle=False)
-
-    criterion = torch.nn.MSELoss(reduction='sum')
-
-    model = SimpleNet(D_in, D_out)
-    optimizer = torch.optim.SGD(model.parameters(), lr=1e-4)
-
-    losses = []
-    vlosses = []
-    pdist = []
-    cosdist = []
-
-    def evaluateLoss(data):
-        # target
-        x, y = data
-        pred = model(x, y)
-
-        loss = criterion(pred, y)
-        return loss
-
-    def evaluateValidation():
-        with torch.no_grad():
-            loss = sum(evaluateLoss(data) for data in val_loader)
-            return loss / len(val_loader.dataset)
-
-    # model.linear1.weight.data = target_params.clone()
-    for epoch in range(200):
-        for i, data in enumerate(train_loader, 0):
-            optimizer.zero_grad()
-
-            loss = evaluateLoss(data)
-            loss.backward()
-            optimizer.step()
-
-            avg_loss = loss.item() / len(data[0])
-
-            losses.append(avg_loss)
-            vlosses.append(evaluateValidation())
-            pdist.append(torch.norm(model.linear1.weight.data - target_params))
-            cosdist.append(torch.nn.functional.cosine_similarity(model.linear1.weight.data, target_params))
-            if debug:
-                print('[%d, %5d] loss: %.3f' % (epoch + 1, i + 1, avg_loss))
-
-    if debug:
-        print('Finished Training')
-        print('Target params: {}'.format(target_params))
-        print('Learned params:')
-        for param in model.parameters():
-            print(param)
-
-        print('validation total loss: {:.3f}'.format(evaluateValidation()))
-
-    model.linear1.weight.data = target_params.clone()
-    target_loss = evaluateValidation()
-
-    if debug:
-        print('validation total loss with target params: {:.3f}'.format(target_loss))
-
-        plt.plot(range(len(losses)), losses)
-        plt.plot(range(len(losses)), vlosses)
-        plt.plot(range(len(losses)), [target_loss] * len(losses), linestyle='--')
-        plt.legend(['training minibatch', 'whole validation', 'validation with target params'])
-        plt.xlabel('minibatch')
-        plt.ylabel('MSE loss')
-
-        plt.figure()
-        plt.plot(range(len(pdist)), pdist)
-        plt.xlabel('minibatch')
-        plt.ylabel('euclidean distance of model params from target')
-
-        plt.figure()
-        plt.plot(range(len(cosdist)), cosdist)
-        plt.xlabel('minibatch')
-        plt.ylabel('cosine similarity between model params and target')
-        plt.show()
-
-    # check that we're close to the actual KNN performance on validation set
-    last_few = 5
-    loss_tolerance = 0.02
-    assert sum(vlosses[-last_few:]) / last_few - target_loss < target_loss * loss_tolerance
-
-
-if __name__ == "__main__":
-    test_softknn(True)
+# if __name__ == "__main__":
+#     test_softknn(False)

@@ -46,14 +46,22 @@ def test_angle_between():
     assert res.shape == (2, 2)
     assert torch.allclose(res, torch.tensor([[math.pi / 2, 0], [math.pi / 2, math.pi]]))
 
-    N = 20
-    M = 30
+    N = 100
+    M = 150
     u = torch.randn(N, 3)
     v = torch.randn(M, 3)
 
     res = math_utils.angle_between(u, v)
     res2 = math_utils.angle_between_stable(u, v)
-    assert torch.allclose(res, res2)  # only time when they shouldn't be equal is when u ~= v or u ~= -v
+
+    U = (u / u.norm(dim=-1, keepdim=True)).unsqueeze(1).repeat(1, M, 1)
+    V = (v / v.norm(dim=-1, keepdim=True)).unsqueeze(0).repeat(N, 1, 1)
+    close_to_parallel = torch.isclose(U, V, atol=2e-2) | torch.isclose(U, -V, atol=2e-2)
+    close_to_parallel = close_to_parallel.all(dim=-1)
+    # they should be the same when they are not close to parallel
+    assert torch.allclose(res[~close_to_parallel],
+                          res2[~close_to_parallel],
+                          atol=1e-5)  # only time when they shouldn't be equal is when u ~= v or u ~= -v
 
 
 def test_angle_between_batch():
