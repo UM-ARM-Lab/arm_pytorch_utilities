@@ -116,3 +116,7 @@ def ensure_diagonal(Q, dim):
             raise RuntimeError("Expect {} sized diagonal vector but given {}".format(dim, Q.shape[0]))
         Q = torch.diag(Q)
     return Q
+
+def first_positive(x, dim=0):
+    nonz = (x > 0)
+    return ((nonz.cumsum(dim) == 1) & nonz).max(dim)
