@@ -42,20 +42,7 @@ def kronecker_product(t1, t2):
     Computes the Kronecker product between two tensors.
     See https://en.wikipedia.org/wiki/Kronecker_product
     """
-    t1_height, t1_width = t1.size()
-    t2_height, t2_width = t2.size()
-    out_height = t1_height * t2_height
-    out_width = t1_width * t2_width
-
-    tiled_t2 = t2.repeat(t1_height, t1_width)
-    expanded_t1 = (
-        t1.unsqueeze(2)
-            .unsqueeze(3)
-            .repeat(1, t2_height, t2_width, 1)
-            .view(out_height, out_width)
-    )
-
-    return expanded_t1 * tiled_t2
+    return torch.kron(t1, t2)
 
 
 def cov(x, rowvar=False, bias=False, ddof=None, aweights=None):
@@ -152,16 +139,16 @@ class GELS(Function):
         # A: (..., M, N)
         # b: (..., M, K)
         # https://github.com/tensorflow/tensorflow/blob/master/tensorflow/python/ops/linalg_ops.py#L267
-        u = torch.cholesky(torch.matmul(A.transpose(-1, -2), A), upper=True)
-        ret = torch.cholesky_solve(torch.matmul(A.transpose(-1, -2), b), u, upper=True)
-        ctx.save_for_backward(u, ret, A, b)
+        L = torch.linalg.cholesky(torch.matmul(A.transpose(-1, -2), A))
+        ret = torch.cholesky_solve(torch.matmul(A.transpose(-1, -2), b), L, upper=False)
+        ctx.save_for_backward(L, ret, A, b)
         return ret
 
     @staticmethod
     def backward(ctx, grad_output):
         # https://github.com/tensorflow/tensorflow/blob/master/tensorflow/python/ops/linalg_grad.py#L223
         chol, x, a, b = ctx.saved_tensors
-        z = torch.cholesky_solve(grad_output, chol, upper=True)
+        z = torch.cholesky_solve(grad_output, chol, upper=False)
         xzt = torch.matmul(x, z.transpose(-1, -2))
         zx_sym = xzt + xzt.transpose(-1, -2)
         grad_A = - torch.matmul(a, zx_sym) + torch.matmul(b, z.transpose(-1, -2))
@@ -197,11 +184,13 @@ SYMMETRIC_CORRECTION_NORM_THRESHOLD = 1e-3
 def ls_cov(X, Y, weights=None, make_symmetric=True, sigreg=1e-4):
     X, Y = _apply_weights(X, Y, weights)
 
-    pinvXX = X.pinverse()
-    params = (pinvXX @ Y).t()
+    # Solve least squares via lstsq (more stable than pinverse)
+    result = torch.linalg.lstsq(X, Y)
+    params = result.solution.t()
 
     # estimate covariance according to: http://users.stat.umn.edu/~helwig/notes/mvlr-Notes.pdf (see up to slide 66)
     # hat/projection matrix - Yhat = H*Y
+    pinvXX = X.pinverse()
     H = X @ pinvXX
 
     N = X.shape[0]
@@ -231,8 +220,9 @@ def ls_cov(X, Y, weights=None, make_symmetric=True, sigreg=1e-4):
         XXXX = XXXX_sym
         error_covariance = error_covariance_sym
 
-    # TODO might be able to use cholesky decomp here since XXXX > 0
-    covariance = kronecker_product(error_covariance, XXXX.inverse())
+    # Use solve instead of explicit inverse: solve(A, I) = A^{-1}, more numerically stable
+    XXXX_inv = torch.linalg.solve(XXXX, torch.eye(XXXX.shape[0], dtype=XXXX.dtype, device=XXXX.device)).contiguous()
+    covariance = kronecker_product(error_covariance, XXXX_inv)
 
     return params, covariance
 
