@@ -311,13 +311,15 @@ class StandardScaler(SingleTransformer):
         super().__init__(**kwargs)
         self._m = None
         self._s = None
+        self._inv_s = None
 
     def fit(self, X):
         self._m = X.mean(0, keepdim=True)
         self._s = X.std(0, unbiased=False, keepdim=True)
+        self._inv_s = 1.0 / self._s
 
     def transform(self, X):
-        return (X - self._m) / self._s
+        return (X - self._m) * self._inv_s
 
     def inverse_transform(self, X):
         return (X * self._s) + self._m

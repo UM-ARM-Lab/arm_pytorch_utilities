@@ -91,7 +91,23 @@ def test_min_max_shared_scale():
     assert torch.allclose(tsf._scale[0], tsf._scale[1])
 
 
-def try_robust_min_max_scaler():
+def test_standard_scaler():
+    N = 500
+    nx = 4
+    x = torch.randn((N, nx)) * 3 + 2  # non-zero mean and non-unit std
+    scaler = preprocess.StandardScaler()
+    scaler.fit(x)
+    xx = scaler.transform(x)
+    # Mean should be ~0 per column
+    assert torch.allclose(xx.mean(0), torch.zeros(nx), atol=1e-5)
+    # Std should be ~1 per column
+    assert torch.allclose(xx.std(0, unbiased=False), torch.ones(nx), atol=1e-5)
+    # Round-trip
+    xxx = scaler.inverse_transform(xx)
+    assert torch.allclose(xxx, x, atol=1e-5)
+
+
+def test_robust_min_max_scaler():
     N = 100
     nx = 3
     ny = 2
@@ -100,8 +116,12 @@ def try_robust_min_max_scaler():
     tsf = preprocess.PytorchTransformer(preprocess.RobustMinMaxScaler())
     tsf.fit(x, y)
     xx, yy, _ = tsf.transform(x, y)
-    print("xx low {} high {}".format(xx.min(dim=0)[0], xx.max(dim=0)[0]))
-    print("yy low {} high {}".format(yy.min(dim=0)[0], yy.max(dim=0)[0]))
+    # Most values should be in [0, 1] range (robust allows some outside)
+    assert xx.min() > -0.5
+    assert xx.max() < 1.5
+    # Round-trip correctness
+    yyy = tsf.invert_transform(yy, x)
+    assert torch.allclose(y, yyy, atol=1e-5)
 
 
 def test_angle_to_cos_sin():
@@ -145,5 +165,6 @@ if __name__ == "__main__":
     test_min_max_shared_scale()
     test_preprocess_compose()
     test_angle_to_cos_sin()
-    try_robust_min_max_scaler()
+    test_standard_scaler()
+    test_robust_min_max_scaler()
     test_select_transform()

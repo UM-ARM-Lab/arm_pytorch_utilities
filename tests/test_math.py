@@ -83,9 +83,85 @@ def test_angle_between_batch():
     assert torch.allclose(res, math.pi / 2 * torch.ones(N))
 
 
+def test_replace_nan_and_inf():
+    # 1D tensor
+    a = torch.tensor([1.0, float('nan'), 3.0, float('inf'), -float('inf'), 6.0])
+    result = math_utils.replace_nan_and_inf(a.clone(), replacement=0)
+    expected = torch.tensor([1.0, 0.0, 3.0, 0.0, 0.0, 6.0])
+    assert torch.allclose(result, expected)
+
+    # 2D tensor with custom replacement
+    b = torch.tensor([[1.0, float('nan')], [float('inf'), 4.0]])
+    result = math_utils.replace_nan_and_inf(b.clone(), replacement=5)
+    expected = torch.tensor([[1.0, 5.0], [5.0, 4.0]])
+    assert torch.allclose(result, expected)
+
+    # Clean tensor passes through unchanged
+    c = torch.tensor([1.0, 2.0, 3.0])
+    result = math_utils.replace_nan_and_inf(c.clone())
+    assert torch.allclose(result, c)
+
+
+def test_clip():
+    # Per-element tensor bounds (the differentiator from torch.clamp)
+    a = torch.tensor([1.0, 5.0, -3.0, 7.0])
+    min_val = torch.tensor([0.0, 2.0, -1.0, 0.0])
+    max_val = torch.tensor([2.0, 4.0, 0.0, 6.0])
+    result = math_utils.clip(a, min_val, max_val)
+    expected = torch.tensor([1.0, 4.0, -1.0, 6.0])
+    assert torch.allclose(result, expected)
+
+    # Broadcasting: a is (N, D), bounds are (D,)
+    N, D = 10, 3
+    a = torch.randn(N, D) * 5
+    min_val = torch.tensor([-1.0, -2.0, -3.0])
+    max_val = torch.tensor([1.0, 2.0, 3.0])
+    result = math_utils.clip(a, min_val, max_val)
+    assert (result >= min_val).all()
+    assert (result <= max_val).all()
+
+
+def test_angular_diff_batch():
+    # Known wrapping values
+    a = torch.tensor([3.0, -3.0, 0.1])
+    b = torch.tensor([0.1, 0.1, 3.0])
+    result = math_utils.angular_diff_batch(a, b)
+    # All results should be in (-pi, pi]
+    assert (result > -math.pi).all()
+    assert (result <= math.pi + 1e-6).all()
+
+    # Compare against element-wise angular_diff with inputs where |a-b| < 2*pi
+    # (scalar angular_diff only wraps once, so it's only correct in that range)
+    N = 50
+    a = (torch.rand(N) - 0.5) * 2 * math.pi
+    b = (torch.rand(N) - 0.5) * 2 * math.pi
+    batch_result = math_utils.angular_diff_batch(a, b)
+    for i in range(N):
+        scalar_result = math_utils.angular_diff(a[i].item(), b[i].item())
+        assert abs(batch_result[i].item() - scalar_result) < 1e-5
+
+    # Verify batch version handles large differences correctly (beyond single-wrap range)
+    a_large = torch.tensor([10.0, -10.0, 20.0])
+    b_large = torch.tensor([0.0, 0.0, 0.0])
+    result_large = math_utils.angular_diff_batch(a_large, b_large)
+    assert (result_large > -math.pi).all()
+    assert (result_large <= math.pi + 1e-6).all()
+
+
+def test_get_bounds():
+    assert math_utils.get_bounds(None, 5) == (-5, 5)
+    assert math_utils.get_bounds(-3, None) == (-3, 3)
+    assert math_utils.get_bounds(2, 5) == (2, 5)
+    assert math_utils.get_bounds(None, None) == (None, None)
+
+
 if __name__ == "__main__":
     test_angle_normalize()
     test_batch_angle_rotate()
     test_cos_sim_pairwise()
     test_angle_between()
     test_angle_between_batch()
+    test_replace_nan_and_inf()
+    test_clip()
+    test_angular_diff_batch()
+    test_get_bounds()
