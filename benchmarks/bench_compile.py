@@ -84,69 +84,73 @@ def run_benchmarks(device_str):
     x_nan = torch.randn(10000, 100, device=device)
     mask = torch.rand_like(x_nan) < 0.1
     x_nan[mask] = float('nan')
-    benchmarks['replace_nan_and_inf'] = (math_utils.replace_nan_and_inf, (x_nan.clone(), 0))
+    benchmarks['replace_nan_and_inf'] = (math_utils.replace_nan_and_inf, (x_nan.clone(), 0), True)
 
     # angular_diff_batch
     a_ang = torch.randn(100000, device=device)
     b_ang = torch.randn(100000, device=device)
-    benchmarks['angular_diff_batch'] = (math_utils.angular_diff_batch, (a_ang, b_ang))
+    benchmarks['angular_diff_batch'] = (math_utils.angular_diff_batch, (a_ang, b_ang), False)
 
     # angle_between_stable
     u_abs = torch.randn(200, 50, device=device)
     v_abs = torch.randn(150, 50, device=device)
-    benchmarks['angle_between_stable'] = (math_utils.angle_between_stable, (u_abs, v_abs))
+    benchmarks['angle_between_stable'] = (math_utils.angle_between_stable, (u_abs, v_abs), False)
 
     # cos_sim_pairwise
     x1_cos = torch.randn(500, 50, device=device)
     x2_cos = torch.randn(300, 50, device=device)
-    benchmarks['cos_sim_pairwise'] = (math_utils.cos_sim_pairwise, (x1_cos, x2_cos))
+    benchmarks['cos_sim_pairwise'] = (math_utils.cos_sim_pairwise, (x1_cos, x2_cos), False)
 
     # batch_batch_product
     X_bbp = torch.randn(10000, 20, device=device)
     A_bbp = torch.randn(10000, 20, 20, device=device)
-    benchmarks['batch_batch_product'] = (linalg.batch_batch_product, (X_bbp, A_bbp))
+    benchmarks['batch_batch_product'] = (linalg.batch_batch_product, (X_bbp, A_bbp), False)
 
     # batch_quadratic_product
     X_bqp = torch.randn(10000, 20, device=device)
     A_bqp = make_psd(20, device)
-    benchmarks['batch_quadratic_product'] = (linalg.batch_quadratic_product, (X_bqp, A_bqp))
+    benchmarks['batch_quadratic_product'] = (linalg.batch_quadratic_product, (X_bqp, A_bqp), False)
 
     # batch_outer_product
     u_bop = torch.randn(10000, 20, device=device)
     v_bop = torch.randn(10000, 20, device=device)
-    benchmarks['batch_outer_product'] = (linalg.batch_outer_product, (u_bop, v_bop))
+    benchmarks['batch_outer_product'] = (linalg.batch_outer_product, (u_bop, v_bop), False)
 
     # squeeze_n
     x_sq = torch.randn(1, 1, 1, 1000, 50, device=device)
-    benchmarks['squeeze_n'] = (lambda x: tensor_utils.squeeze_n(x, 3), (x_sq,))
+    benchmarks['squeeze_n'] = (tensor_utils.squeeze_n, (x_sq, 3), False)
 
     # MinMaxScaler.transform
     x_mm = torch.randn(10000, 50, device=device)
     scaler = preprocess.MinMaxScaler()
     scaler.fit(x_mm)
-    benchmarks['MinMaxScaler.transform'] = (scaler.transform, (x_mm,))
+    benchmarks['MinMaxScaler.transform'] = (scaler.transform, (x_mm,), False)
 
     # SoftKNN.forward
     x_knn = torch.randn(200, 10, device=device)
     knn = softknn.SoftKNN(min_k=20)
-    benchmarks['SoftKNN.forward'] = (knn, (x_knn,))
+    benchmarks['SoftKNN.forward'] = (knn, (x_knn,), False)
 
     # sqrtm (CPU only due to .numpy())
     if device_str == 'cpu':
         A_sqrtm = make_psd(50, device)
-        benchmarks['sqrtm'] = (linalg.sqrtm, (A_sqrtm,))
+        benchmarks['sqrtm'] = (linalg.sqrtm, (A_sqrtm,), False)
 
     # --- Run benchmarks ---
     print(f"\n{'Function':<30} {'Eager (ms)':>12} {'Compile (ms)':>14} {'Speedup':>10} {'Compile OK':>12}")
     print("-" * 80)
 
-    for name, (fn, args) in benchmarks.items():
+    for name, (fn, args, needs_clone) in benchmarks.items():
         # Eager benchmark
-        # For replace_nan_and_inf, need fresh clone each call
-        if name == 'replace_nan_and_inf':
-            def eager_fn(x_template=x_nan):
-                return math_utils.replace_nan_and_inf(x_template.clone(), 0)
-            eager_ms = bench(eager_fn, warmup=5, repeats=20, device=device_str)
+        if needs_clone:
+            # For in-place functions, clone first arg each call
+            template = args[0]
+            rest_args = args[1:]
+
+            def cloning_fn(*a, _fn=fn, _tpl=template, _rest=rest_args):
+                return _fn(_tpl.clone(), *_rest)
+
+            eager_ms = bench(cloning_fn, warmup=5, repeats=20, device=device_str)
         else:
             try:
                 eager_ms = bench(fn, *args, device=device_str)
@@ -157,10 +161,7 @@ def run_benchmarks(device_str):
                 continue
 
         # Compile benchmark
-        if name == 'replace_nan_and_inf':
-            compile_result = try_compile_bench(eager_fn, device=device_str)
-        else:
-            compile_result = try_compile_bench(fn, *args, device=device_str)
+        compile_result = try_compile_bench(fn, *args, device=device_str)
 
         if len(compile_result) == 2:
             compile_ms, compile_ok = compile_result

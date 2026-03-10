@@ -115,7 +115,7 @@ class MatrixSquareRoot(Function):
 
     @staticmethod
     def forward(ctx, input):
-        m = input.detach().numpy().astype(np.float_)
+        m = input.detach().numpy().astype(np.float64)
         sqrtm = torch.from_numpy(scipy.linalg.sqrtm(m).real).type_as(input)
         ctx.save_for_backward(sqrtm)
         return sqrtm
@@ -125,8 +125,8 @@ class MatrixSquareRoot(Function):
         grad_input = None
         if ctx.needs_input_grad[0]:
             sqrtm, = ctx.saved_tensors
-            sqrtm = sqrtm.data.numpy().astype(np.float_)
-            gm = grad_output.data.numpy().astype(np.float_)
+            sqrtm = sqrtm.data.numpy().astype(np.float64)
+            gm = grad_output.data.numpy().astype(np.float64)
 
             # Given a positive semi-definite matrix X,
             # since X = X^{1/2}X^{1/2}, we can compute the gradient of the

@@ -11,9 +11,7 @@ def clip(a, min_val, max_val):
 
 def replace_nan_and_inf(a, replacement=0):
     """Replaces nan,inf,-inf values with replacement value in place"""
-    a[torch.isnan(a)] = replacement
-    a[a == float('inf')] = replacement
-    a[a == -float('inf')] = replacement
+    torch.nan_to_num(a, nan=replacement, posinf=replacement, neginf=replacement, out=a)
     return a
 
 
@@ -66,8 +64,8 @@ def angle_between_stable(u: torch.tensor, v: torch.tensor):
     dim = -1
     u_norm = u.norm(dim=dim, keepdim=True)
     v_norm = v.norm(dim=dim, keepdim=True)
-    uv = u.unsqueeze(1).repeat(1, v.shape[0], 1) * v_norm
-    vu = v.unsqueeze(0).repeat(u.shape[0], 1, 1) * u_norm.unsqueeze(1)
+    uv = u.unsqueeze(1) * v_norm.transpose(-2, -1).unsqueeze(-1)
+    vu = v.unsqueeze(0) * u_norm.unsqueeze(1)
     num = (uv - vu).norm(dim=dim)
     den = (uv + vu).norm(dim=dim)
     return 2 * torch.atan2(num, den)
@@ -104,9 +102,7 @@ def angular_diff(a, b):
 def angular_diff_batch(a, b):
     """Angle difference from b to a (a - b)"""
     d = a - b
-    d[d > math.pi] -= 2 * math.pi
-    d[d < -math.pi] += 2 * math.pi
-    return d
+    return ((d + math.pi) % (2 * math.pi)) - math.pi
 
 
 def angle_normalize(a):

@@ -130,14 +130,22 @@ def test_angular_diff_batch():
     assert (result > -math.pi).all()
     assert (result <= math.pi + 1e-6).all()
 
-    # Compare against element-wise angular_diff
+    # Compare against element-wise angular_diff with inputs where |a-b| < 2*pi
+    # (scalar angular_diff only wraps once, so it's only correct in that range)
     N = 50
-    a = (torch.rand(N) - 0.5) * 4 * math.pi
-    b = (torch.rand(N) - 0.5) * 4 * math.pi
+    a = (torch.rand(N) - 0.5) * 2 * math.pi
+    b = (torch.rand(N) - 0.5) * 2 * math.pi
     batch_result = math_utils.angular_diff_batch(a, b)
     for i in range(N):
         scalar_result = math_utils.angular_diff(a[i].item(), b[i].item())
         assert abs(batch_result[i].item() - scalar_result) < 1e-5
+
+    # Verify batch version handles large differences correctly (beyond single-wrap range)
+    a_large = torch.tensor([10.0, -10.0, 20.0])
+    b_large = torch.tensor([0.0, 0.0, 0.0])
+    result_large = math_utils.angular_diff_batch(a_large, b_large)
+    assert (result_large > -math.pi).all()
+    assert (result_large <= math.pi + 1e-6).all()
 
 
 def test_get_bounds():
